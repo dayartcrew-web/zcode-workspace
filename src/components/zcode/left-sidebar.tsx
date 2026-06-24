@@ -15,6 +15,8 @@ import {
   Plus,
   FolderOpen,
   Globe,
+  Loader2,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/store";
@@ -356,6 +358,14 @@ function WorkspaceRow({
 }) {
   const initial = task.title.charAt(0).toUpperCase();
 
+  // A task is "working" while it's active and not yet complete (has steps left).
+  // The root workspace (0/0 steps) and complete/archived tasks show a static mark.
+  const isComplete = task.status === "complete";
+  const isWorking =
+    task.status === "active" &&
+    task.totalSteps > 0 &&
+    task.stepCount < task.totalSteps;
+
   return (
     <motion.li
       layout
@@ -372,16 +382,26 @@ function WorkspaceRow({
             : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
         )}
       >
-        {/* Circular icon with initial */}
+        {/* Circular status avatar: spinner while working, check when done, initial otherwise */}
         <span
           className={cn(
             "grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-semibold",
-            active
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground group-hover:text-foreground",
+            isComplete
+              ? "bg-diff-add/20 text-diff-add"
+              : isWorking
+                ? "bg-primary/15 text-primary"
+                : active
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground group-hover:text-foreground",
           )}
         >
-          {initial}
+          {isWorking ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : isComplete ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : (
+            initial
+          )}
         </span>
 
         {/* Title */}
