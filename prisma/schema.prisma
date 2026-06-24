@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  tags        String   @default("") // comma-separated tags
+  branch      String   @default("main")
+  goal        String   @default("")
+  status      String   @default("active") // active | complete | archived
+  model       String   @default("GLM-5.2")
+  tokensUsed  Int      @default(0)
+  stepCount   Int      @default(0)
+  totalSteps  Int      @default(5)
+  duration    String   @default("0m")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messages    Message[]
+  fileChanges FileChange[]
+  checklist   ChecklistItem[]
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  taskId      String
+  role        String // user | assistant | system
+  kind        String   @default("text") // text | command | file-update | description
+  content     String
+  command     String? // e.g. "Ran node —check app.js"
+  files       String? // JSON of file pills [{name, color}]
+  diffAdd     Int      @default(0)
+  diffDel     Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model FileChange {
+  id          String   @id @default(cuid())
+  taskId      String
+  name        String
+  language    String   @default("text") // for icon color
+  diffAdd     Int      @default(0)
+  diffDel     Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  taskId      String
+  text        String
+  done        Boolean  @default(false)
+  order       Int      @default(0)
+
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
