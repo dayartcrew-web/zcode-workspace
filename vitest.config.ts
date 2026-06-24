@@ -9,6 +9,10 @@ import path from "node:path";
  * source directly (no build step).
  *
  * `environment: "jsdom"` so component/DOM tests resolve browser globals.
+ *
+ * NOTE: this is added here so the domain module's unit tests can run on this
+ * branch independently of Tier 1.5; it is identical to the Tier 1.5 config and
+ * will reconcile cleanly when both branches merge.
  */
 export default defineConfig({
   resolve: {
