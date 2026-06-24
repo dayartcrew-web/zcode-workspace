@@ -125,7 +125,7 @@ export function FileTreePanel() {
       {/* Sub-header */}
       <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
         <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Explorer
         </span>
       </div>

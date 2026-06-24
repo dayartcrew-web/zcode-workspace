@@ -46,7 +46,7 @@ export function SourceControlSection() {
             Version Control
           </h2>
           <div className="flex items-center gap-3">
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Checked {relativeFromNow(lastChecked)}
             </span>
             <button
@@ -111,7 +111,7 @@ function ScmCard({ tool }: { tool: SourceControlTool }) {
                 {tool.name}
               </span>
               {tool.version && (
-                <span className="font-mono text-[11px] text-muted-foreground">
+                <span className="font-mono text-xs text-muted-foreground">
                   {tool.version}
                 </span>
               )}
@@ -192,7 +192,7 @@ function ScmActions({ tool }: { tool: SourceControlTool }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">
           {tool.name} actions
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -307,7 +307,7 @@ function ScmLogo({ tool }: { tool: SourceControlTool }) {
   return (
     <div
       className={cn(
-        "grid h-8 w-8 shrink-0 place-items-center text-[10px] font-bold leading-none",
+        "grid h-8 w-8 shrink-0 place-items-center text-xs font-semibold leading-none",
         tool.logoShape === "circle" ? "rounded-full" : "rounded-md",
         tool.logoBg,
         tool.logoText,
@@ -340,7 +340,7 @@ function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium",
+        "inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium",
         styles[status],
       )}
     >
@@ -392,7 +392,7 @@ function FetchInterval({ tool }: { tool: SourceControlTool }) {
         </div>
         <span className="text-xs text-muted-foreground">seconds</span>
       </div>
-      <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
         Refresh remote branch status in the background. Set this to 0 seconds if
         Git credentials or security keys should only be prompted by explicit Git
         actions.

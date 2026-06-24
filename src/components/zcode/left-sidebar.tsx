@@ -333,14 +333,14 @@ function ProjectHeader({
       />
       <span
         className={cn(
-          "min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-wider",
+          "min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wider",
           active ? "text-foreground" : "text-muted-foreground",
         )}
         title={project}
       >
         {project}
       </span>
-      <span className="shrink-0 rounded bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+      <span className="shrink-0 rounded bg-muted/60 px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
         {count}
       </span>
     </button>
@@ -387,7 +387,7 @@ function WorkspaceRow({
         {/* Circular status avatar: spinner while working, check when done, initial otherwise */}
         <span
           className={cn(
-            "grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-semibold",
+            "grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold",
             isComplete
               ? "bg-diff-add/20 text-diff-add"
               : isWorking
@@ -472,7 +472,7 @@ function SyncIndicator({
   return (
     <span
       className={cn(
-        "shrink-0 tabular-nums text-[10px]",
+        "shrink-0 tabular-nums text-xs",
         active
           ? "text-muted-foreground"
           : "text-muted-foreground/40 group-hover:text-muted-foreground",

@@ -163,7 +163,7 @@ export function FileDiffView() {
 
       {/* Diff body */}
       <div className="scrollbar-thin flex-1 overflow-auto px-2 pb-4">
-        <div className="overflow-hidden rounded-md border border-border bg-background/50 font-mono text-[11px] leading-relaxed">
+        <div className="overflow-hidden rounded-md border border-border bg-background/50 font-mono text-xs leading-relaxed">
           <table className="w-full border-collapse">
             <tbody>
               {diff.lines.map((line, i) => (
@@ -174,7 +174,7 @@ export function FileDiffView() {
         </div>
 
         {diff.hiddenLines > 0 && (
-          <p className="mt-2 px-1 text-[10px] text-muted-foreground">
+          <p className="mt-2 px-1 text-xs text-muted-foreground">
             … {diff.hiddenLines} more {diff.hiddenLines === 1 ? "line" : "lines"}{" "}
             in this file not shown.
           </p>
@@ -188,7 +188,7 @@ function DiffRow({ line }: { line: DiffLine }) {
   if (line.type === "hunk") {
     return (
       <tr className="bg-primary/5">
-        <td colSpan={3} className="px-2 py-1 text-[10px] text-primary/80">
+        <td colSpan={3} className="px-2 py-1 text-xs text-primary/80">
           {line.content}
         </td>
       </tr>

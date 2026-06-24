@@ -115,7 +115,7 @@ export function RemoteConnectDialog({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
           <div className="flex flex-col">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Remote connect
             </span>
             <DialogTitle className="text-sm font-semibold text-foreground">
@@ -143,7 +143,7 @@ export function RemoteConnectDialog({
                   <li key={label} className="flex items-center gap-2.5">
                     <span
                       className={cn(
-                        "grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold",
+                        "grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs font-semibold",
                         active
                           ? "bg-primary text-primary-foreground"
                           : done
@@ -279,7 +279,7 @@ function StepChooseMethod({
               <span className="text-sm font-semibold text-foreground">
                 {m.title}
               </span>
-              <span className="text-center text-[11px] text-muted-foreground">
+              <span className="text-center text-xs text-muted-foreground">
                 {m.subtitle}
               </span>
             </button>

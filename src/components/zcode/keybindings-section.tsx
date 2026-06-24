@@ -29,7 +29,7 @@ export function KeybindingsSection() {
           <h1 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Keybindings
           </h1>
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {seedKeybindings.length} bindings
           </span>
         </div>
@@ -73,16 +73,16 @@ export function KeybindingsSection() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border bg-card/40 text-left">
-              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Command
               </th>
-              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Keybinding
               </th>
-              <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 When
               </th>
-              <th className="w-16 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="w-16 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Status
               </th>
             </tr>
@@ -107,11 +107,11 @@ export function KeybindingsSection() {
                     {k.command}
                   </td>
                   <td className="px-3 py-2">
-                    <kbd className="inline-flex items-center gap-0.5 rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-[11px] text-foreground/90">
+                    <kbd className="inline-flex items-center gap-0.5 rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-xs text-foreground/90">
                       {k.keys}
                     </kbd>
                   </td>
-                  <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
+                  <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
                     {k.when}
                   </td>
                   <td className="px-3 py-2">

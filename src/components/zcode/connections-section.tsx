@@ -155,11 +155,11 @@ function RemoteEnvRow({
             <span className="truncate text-sm font-semibold text-foreground">
               {env.name}
             </span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
               {env.status}
             </span>
           </div>
-          <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
             {env.host}
           </p>
         </div>

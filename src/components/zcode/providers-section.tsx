@@ -34,7 +34,7 @@ export function ProvidersSection() {
           Providers
         </h1>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             Checked {relativeFromNow(lastChecked)}
           </span>
           <button
@@ -93,7 +93,7 @@ function ProviderCard({ provider }: { provider: Provider }) {
                 {provider.name}
               </span>
               {provider.version && (
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {provider.version}
                 </span>
               )}
@@ -149,7 +149,7 @@ function ProviderIcon({ provider }: { provider: Provider }) {
   return (
     <div
       className={cn(
-        "grid h-7 w-7 shrink-0 place-items-center text-xs font-bold",
+        "grid h-7 w-7 shrink-0 place-items-center text-xs font-semibold",
         provider.iconShape === "circle" ? "rounded-full" : "rounded-md",
         provider.iconBg,
         provider.iconText,
@@ -162,7 +162,7 @@ function ProviderIcon({ provider }: { provider: Provider }) {
 
 function EarlyAccessBadge() {
   return (
-    <span className="inline-flex items-center rounded border border-[oklch(0.72_0.18_55/0.4)] bg-[oklch(0.72_0.18_55/0.12)] px-1.5 py-0.5 text-[10px] font-medium text-[oklch(0.78_0.16_70)]">
+    <span className="inline-flex items-center rounded border border-[oklch(0.72_0.18_55/0.4)] bg-[oklch(0.72_0.18_55/0.12)] px-1.5 py-0.5 text-xs font-medium text-[oklch(0.78_0.16_70)]">
       Early Access
     </span>
   );
@@ -299,7 +299,7 @@ function ConfigField({
     >
       <div className="w-44 shrink-0">
         <h4 className="text-sm font-medium text-foreground">{label}</h4>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
           {help}
         </p>
       </div>
@@ -326,7 +326,7 @@ function EnvVarsBlock({ provider }: { provider: Provider }) {
       </button>
 
       {provider.envVars.length === 0 ? (
-        <p className="text-[11px] italic text-muted-foreground/70">
+        <p className="text-xs italic text-muted-foreground/70">
           No environment variables set.
         </p>
       ) : (
@@ -374,7 +374,7 @@ function ModelsBlock({ provider }: { provider: Provider }) {
 
   if (provider.models.length === 0) {
     return (
-      <p className="text-[11px] italic text-muted-foreground/70">
+      <p className="text-xs italic text-muted-foreground/70">
         No models discovered yet.
       </p>
     );

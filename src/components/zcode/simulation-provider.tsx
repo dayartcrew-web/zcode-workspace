@@ -87,7 +87,7 @@ export function SimulationStatusBadge() {
           )}
           <span className={cn("relative inline-flex h-1.5 w-1.5 rounded-full", meta.dot)} />
         </span>
-        <span className={cn("text-[10px] font-medium leading-none", meta.text)}>
+        <span className={cn("text-xs font-medium leading-none", meta.text)}>
           {meta.label}
         </span>
       </div>
