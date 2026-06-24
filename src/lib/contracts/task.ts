@@ -14,7 +14,6 @@ import {
   TaskId,
   boundedString,
   nonNegativeInt,
-  positiveInt,
 } from "./base-schemas";
 
 export const TaskStatusSchema = z.enum(["active", "complete", "archived"]);
@@ -35,7 +34,7 @@ export const TaskSchema = z.object({
   model: boundedString(80).default("GLM-5.2"),
   tokensUsed: nonNegativeInt.default(0),
   stepCount: nonNegativeInt.default(0),
-  totalSteps: positiveInt.default(5),
+  totalSteps: nonNegativeInt.default(5),
   duration: boundedString(20).default("0m"),
   createdAt: z.string().default(""),
   updatedAt: z.string().default(""),
