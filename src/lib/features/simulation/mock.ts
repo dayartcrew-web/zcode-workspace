@@ -1,13 +1,11 @@
 import type { WorkspaceTask } from "@/lib/types";
 import { SIM_ASSISTANT_LINES } from "@/lib/features/chat-streaming";
-import { config } from "@/lib/config";
 
 /**
- * Sidecar port. Sourced from the validated config object (which reads
- * NEXT_PUBLIC_SIM_PORT, defaulting to 4001) instead of an ad-hoc process.env
- * read. Override via the env var for non-default setups.
+ * Sidecar port. Hardcoded fallback — the simulation sidecar is being removed
+ * (teardown T1 removed the config field); this whole module is deleted in T2.
  */
-export const SIM_PORT = config.simPort;
+export const SIM_PORT = 4001;
 
 /** Commands cycled by the simulation when fabricating command messages. */
 export const SIM_COMMANDS: string[] = [
