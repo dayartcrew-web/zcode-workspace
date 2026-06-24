@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Settings,
   Star,
@@ -32,6 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { RemoteConnectDialog } from "./remote-connect-dialog";
+import { SimulationStatusBadge } from "./simulation-provider";
 
 export function LeftSidebar() {
   const tasks = useWorkspace((s) => s.tasks);
@@ -79,6 +81,7 @@ export function LeftSidebar() {
             </span>
           </div>
           <div className="flex items-center gap-0.5">
+            <SimulationStatusBadge />
             <HeaderIcon
               icon={<Menu className="h-3.5 w-3.5" />}
               label="Menu"
@@ -354,7 +357,12 @@ function WorkspaceRow({
   const initial = task.title.charAt(0).toUpperCase();
 
   return (
-    <li>
+    <motion.li
+      layout
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 260, damping: 26 }}
+    >
       <button
         onClick={onSelect}
         className={cn(
@@ -397,6 +405,6 @@ function WorkspaceRow({
           )}
         />
       </button>
-    </li>
+    </motion.li>
   );
 }

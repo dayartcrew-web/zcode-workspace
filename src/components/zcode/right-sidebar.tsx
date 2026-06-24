@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   GitBranch,
   GitCommitVertical,
@@ -22,6 +23,7 @@ import {
   FolderTree,
   GitCompare,
   Wrench,
+  Upload as UploadIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/store";
@@ -145,6 +147,7 @@ export function RightSidebar() {
             <CommitCard key={`${detail.id}-${detail.branch}`} />
             <GoalCard />
             <ProgressCard />
+            <UploadCard />
           </div>
         </div>
       )}
@@ -495,14 +498,59 @@ function GoalCard() {
       </div>
 
       <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
-        <div
+        <motion.div
           className={cn(
-            "h-full rounded-full transition-all",
+            "h-full rounded-full",
             complete ? "bg-diff-add" : "bg-primary",
           )}
-          style={{ width: `${pct}%` }}
+          initial={false}
+          animate={{ width: `${pct}%` }}
+          transition={{ type: "spring", stiffness: 120, damping: 20 }}
         />
       </div>
+    </Card>
+  );
+}
+
+/** Live upload transfers driven by the simulation sidecar. */
+function UploadCard() {
+  const uploads = useWorkspace((s) => s.uploads);
+  if (uploads.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader
+        icon={<UploadIcon className="h-3.5 w-3.5" />}
+        title="Transfers"
+        right={
+          <span className="text-[10px] text-muted-foreground">
+            {uploads.length} active
+          </span>
+        }
+      />
+      <ul className="space-y-2">
+        {uploads.map((u) => (
+          <li key={u.id} className="flex flex-col gap-1">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="truncate text-foreground/80">{u.name}</span>
+              <span className="tabular-nums text-muted-foreground">
+                {u.done ? "done" : `${Math.round(u.progress)}%`}
+              </span>
+            </div>
+            <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+              <motion.div
+                className={cn(
+                  "h-full rounded-full",
+                  u.done ? "bg-diff-add" : "bg-primary",
+                )}
+                initial={false}
+                animate={{ width: `${u.progress}%` }}
+                transition={{ type: "spring", stiffness: 120, damping: 22 }}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }

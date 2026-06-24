@@ -7,6 +7,8 @@ import type {
   WorkspaceMessage,
   ChecklistItem,
   FileChange,
+  Upload,
+  SimStatus,
 } from "@/lib/types";
 import {
   seedProviders,
@@ -100,6 +102,16 @@ interface WorkspaceState {
   };
   remoteEnvironments: RemoteEnvironment[];
 
+  // Simulation (websocket sidecar) state
+  simStatus: SimStatus;
+  simPaused: boolean;
+  /** Id of the assistant message currently streaming token-by-token (null = idle). */
+  streamingMessageId: string | null;
+  /** Partial content accumulated while streaming. */
+  streamingContent: string;
+  /** Live file transfers surfaced in the right panel. */
+  uploads: Upload[];
+
   // Actions
   setActiveTask: (id: string) => void;
   setDetail: (detail: TaskDetail) => void;
@@ -157,7 +169,30 @@ interface WorkspaceState {
   updateFileChange: (id: string, patch: Partial<FileChange>) => void;
   deleteTask: (id: string) => void;
   addTask: (task: WorkspaceTask) => void;
+  /** Add a task to the list WITHOUT changing the active task (background arrival). */
+  addTaskSilent: (task: WorkspaceTask) => void;
   hydrate: (tasks: WorkspaceTask[], activeTaskId: string) => void;
+
+  // Simulation actions
+  setSimStatus: (status: SimStatus) => void;
+  setSimPaused: (paused: boolean) => void;
+  /** Begin streaming a new assistant message; returns nothing — the id is provided. */
+  startStreaming: (messageId: string) => void;
+  /** Append a token/word chunk to the in-flight streaming message. */
+  appendStreamingToken: (token: string) => void;
+  /** Finalize streaming: commit the message into detail.messages and clear state. */
+  finishStreaming: (message: WorkspaceMessage) => void;
+  /** Discard the in-flight stream without committing (e.g. on disconnect). */
+  cancelStreaming: () => void;
+  addUpload: (upload: Upload) => void;
+  updateUpload: (id: string, patch: Partial<Upload>) => void;
+  removeUpload: (id: string) => void;
+  /** Patch a task's scalar fields (e.g. stepCount, tokensUsed) in BOTH tasks[] and detail. */
+  patchTask: (taskId: string, patch: Partial<WorkspaceTask>) => void;
+  /** Mark checklist items done (simulation-driven) by id, without toggling. */
+  markChecklistDone: (ids: string[]) => void;
+  /** Add a file change to the active detail if missing (used by sim:file-change). */
+  addFileChange: (fc: FileChange) => void;
 }
 
 export const useWorkspace = create<WorkspaceState>((set) => ({
@@ -208,6 +243,13 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
     t3Connect: false,
   },
   remoteEnvironments: [],
+
+  // Simulation initial state
+  simStatus: "connecting",
+  simPaused: false,
+  streamingMessageId: null,
+  streamingContent: "",
+  uploads: [],
 
   setActiveTask: (id) => set({ activeTaskId: id }),
   setDetail: (detail) => set({ detail }),
@@ -490,7 +532,89 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
   addTask: (task) =>
     set((s) => ({ tasks: [task, ...s.tasks], activeTaskId: task.id })),
 
+  addTaskSilent: (task) =>
+    set((s) => (s.tasks.some((t) => t.id === task.id) ? {} : { tasks: [task, ...s.tasks] })),
+
   hydrate: (tasks, activeTaskId) => set({ tasks, activeTaskId }),
+
+  // ---- Simulation actions ----
+  setSimStatus: (status) => set({ simStatus: status }),
+
+  setSimPaused: (paused) => set({ simPaused: paused }),
+
+  startStreaming: (messageId) =>
+    set({ streamingMessageId: messageId, streamingContent: "" }),
+
+  appendStreamingToken: (token) =>
+    set((s) =>
+      s.streamingMessageId
+        ? { streamingContent: s.streamingContent + token }
+        : {},
+    ),
+
+  finishStreaming: (message) =>
+    set((s) => {
+      if (!s.detail) {
+        return { streamingMessageId: null, streamingContent: "" };
+      }
+      return {
+        streamingMessageId: null,
+        streamingContent: "",
+        detail: {
+          ...s.detail,
+          messages: [...s.detail.messages, message],
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }),
+
+  cancelStreaming: () => set({ streamingMessageId: null, streamingContent: "" }),
+
+  addUpload: (upload) =>
+    set((s) => ({ uploads: [...s.uploads, upload] })),
+
+  updateUpload: (id, patch) =>
+    set((s) => ({
+      uploads: s.uploads.map((u) => (u.id === id ? { ...u, ...patch } : u)),
+    })),
+
+  removeUpload: (id) =>
+    set((s) => ({ uploads: s.uploads.filter((u) => u.id !== id) })),
+
+  patchTask: (taskId, patch) =>
+    set((s) => ({
+      tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
+      detail:
+        s.detail && s.detail.id === taskId
+          ? { ...s.detail, ...patch }
+          : s.detail,
+    })),
+
+  markChecklistDone: (ids) =>
+    set((s) => {
+      if (!s.detail) return {};
+      const idSet = new Set(ids);
+      return {
+        detail: {
+          ...s.detail,
+          checklist: s.detail.checklist.map((c) =>
+            idSet.has(c.id) ? { ...c, done: true } : c,
+          ),
+        },
+      };
+    }),
+
+  addFileChange: (fc) =>
+    set((s) => {
+      if (!s.detail) return {};
+      if (s.detail.fileChanges.some((f) => f.id === fc.id)) return {};
+      return {
+        detail: {
+          ...s.detail,
+          fileChanges: [...s.detail.fileChanges, fc],
+        },
+      };
+    }),
 }));
 
 function dedupeBranches(branches: string[]): string[] {
@@ -498,4 +622,12 @@ function dedupeBranches(branches: string[]): string[] {
 }
 
 export type { WorkspaceState };
-export type { WorkspaceTask, TaskDetail, WorkspaceMessage, ChecklistItem, FileChange };
+export type {
+  WorkspaceTask,
+  TaskDetail,
+  WorkspaceMessage,
+  ChecklistItem,
+  FileChange,
+  Upload,
+  SimStatus,
+};

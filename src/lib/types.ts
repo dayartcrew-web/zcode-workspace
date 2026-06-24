@@ -65,3 +65,15 @@ export interface TaskDetail extends WorkspaceTask {
   fileChanges: FileChange[];
   checklist: ChecklistItem[];
 }
+
+/** A live file transfer, surfaced in the right panel by the simulation. */
+export interface Upload {
+  id: string;
+  name: string;
+  /** 0–100 percent */
+  progress: number;
+  done: boolean;
+}
+
+/** Connection status of the simulation websocket sidecar. */
+export type SimStatus = "connecting" | "connected" | "disconnected" | "offline";

@@ -26,8 +26,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const zai = await ZAI.create();
-
     const system = `You are ZCode, an AI coding agent working inside a developer's IDE.
 You operate on a code task. You write code, run commands, and report concise progress.
 Always reply in 2-4 short sentences. Do not use markdown headers.
@@ -45,18 +43,30 @@ ${prompt}
 
 Reply with a short plan of the next concrete change you would make.`;
 
-    const completion = await zai.chat.completions.create({
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      temperature: 0.4,
-      max_tokens: 220,
-    });
+    let content: string;
+    let tokensUsed = 0;
 
-    const content =
-      completion.choices?.[0]?.message?.content?.trim() ??
-      "I'll review the request and apply the smallest safe change next.";
+    try {
+      const zai = await ZAI.create();
+      const completion = await zai.chat.completions.create({
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        temperature: 0.4,
+        max_tokens: 220,
+      });
+      content =
+        completion.choices?.[0]?.message?.content?.trim() ??
+        simulatedReply(body);
+      tokensUsed = completion.usage?.total_tokens ?? 0;
+    } catch {
+      // No ZAI credentials configured (missing .z-ai-config) or the model
+      // call failed. Fall back to a deterministic simulated reply so the
+      // offline composer path keeps working instead of returning a 500.
+      content = simulatedReply(body);
+      tokensUsed = 60 + Math.floor(Math.random() * 180);
+    }
 
     // Simulate a small file touch so the UI feels alive
     const add = 8 + Math.floor(Math.random() * 24);
@@ -71,10 +81,16 @@ Reply with a short plan of the next concrete change you would make.`;
         { name: "index.ts", color: "blue" as const },
         { name: "README.md", color: "blue" as const },
       ],
-      tokensUsed: completion.usage?.total_tokens ?? 0,
+      tokensUsed,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+/** Deterministic fallback used when the ZAI model can't be reached. */
+function simulatedReply(body: ChatRequestBody): string {
+  const short = body.prompt.slice(0, 60);
+  return `Looking at "${short}". I'll read the relevant files, apply the smallest safe change to ${body.branch}, and show you the diff before committing.`;
 }

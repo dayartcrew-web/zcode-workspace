@@ -1,4 +1,10 @@
-import type { TaskDetail, WorkspaceTask } from "./types";
+import type {
+  FileChange,
+  FilePill,
+  TaskDetail,
+  WorkspaceMessage,
+  WorkspaceTask,
+} from "./types";
 
 // Seed data matching the ZCode screenshot exactly
 // Tasks shown in the left sidebar (most recent first)
@@ -58,7 +64,7 @@ export const seedTasks: WorkspaceTask[] = [
     branch: "feat/gomoku-ai",
     project: "gomoku-ai",
     goal: "Make the 15x15 board scale cleanly on phones in both orientations",
-    status: "active",
+    status: "complete",
     model: "GLM-5.2",
     tokensUsed: 18900,
     stepCount: 3,
@@ -90,7 +96,7 @@ export const seedTasks: WorkspaceTask[] = [
     branch: "feat/homepage-refresh",
     project: "homepage-refresh",
     goal: "Polish English strings across the marketing site",
-    status: "active",
+    status: "complete",
     model: "GLM-5.2",
     tokensUsed: 9800,
     stepCount: 4,
@@ -138,7 +144,7 @@ export const seedTasks: WorkspaceTask[] = [
     branch: "feat/docs-search",
     project: "docs-search",
     goal: "Better snippet ranking + visual highlight",
-    status: "active",
+    status: "archived",
     model: "GLM-5.2",
     tokensUsed: 21000,
     stepCount: 2,
@@ -169,6 +175,17 @@ export const seedTasks: WorkspaceTask[] = [
 export const seedTaskDetail: TaskDetail = {
   ...seedTasks[0],
   messages: [
+    {
+      id: "msg-u1",
+      taskId: "task-gomoku",
+      role: "user",
+      kind: "text",
+      content:
+        "Can you build a Gomoku game that runs fully offline in the browser, with an AI that actually plays well instead of moving randomly?",
+      diffAdd: 0,
+      diffDel: 0,
+      createdAt: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
+    },
     {
       id: "msg-1",
       taskId: "task-gomoku",
@@ -290,6 +307,16 @@ export function buildTaskDetail(task: WorkspaceTask): TaskDetail {
 
   const msgs: TaskDetail["messages"] = [
     {
+      id: `${task.id}-u1`,
+      taskId: task.id,
+      role: "user",
+      kind: "text",
+      content: `Let's work on: ${task.goal}. Start with the smallest safe change set.`,
+      diffAdd: 0,
+      diffDel: 0,
+      createdAt: task.updatedAt,
+    },
+    {
       id: `${task.id}-m1`,
       taskId: task.id,
       role: "assistant",
@@ -302,6 +329,20 @@ export function buildTaskDetail(task: WorkspaceTask): TaskDetail {
     },
     {
       id: `${task.id}-m2`,
+      taskId: task.id,
+      role: "assistant",
+      kind: "file-update",
+      content: "Updated",
+      files: [
+        { name: "index.ts", color: "blue" },
+        { name: "README.md", color: "blue" },
+      ],
+      diffAdd: 94,
+      diffDel: 11,
+      createdAt: task.updatedAt,
+    },
+    {
+      id: `${task.id}-m3`,
       taskId: task.id,
       role: "assistant",
       kind: "description",
@@ -328,6 +369,14 @@ export function buildTaskDetail(task: WorkspaceTask): TaskDetail {
       language: "typescript",
       diffAdd: 94,
       diffDel: 11,
+    },
+    {
+      id: `${task.id}-f3`,
+      taskId: task.id,
+      name: "styles.css",
+      language: "css",
+      diffAdd: 42,
+      diffDel: 5,
     },
   ];
 
@@ -395,3 +444,119 @@ function checklistTextFor(task: WorkspaceTask, i: number): string {
   const list = base[task.id] ?? ["Step " + (i + 1)];
   return list[i] ?? `Step ${i + 1}`;
 }
+
+/* ------------------------------------------------------------------ *
+ * Shared simulation helpers
+ *
+ * Used by the websocket sidecar (mini-services/sim-server.ts) to fabricate
+ * realistic events. Kept here so the server and the seed data share the same
+ * vocabulary and shapes. Pure functions, no side effects.
+ * ------------------------------------------------------------------ */
+
+export const SIM_FILE_POOL: { name: string; language: string; color: FilePill["color"] }[] = [
+  { name: "index.ts", language: "typescript", color: "blue" },
+  { name: "app.js", language: "javascript", color: "yellow" },
+  { name: "styles.css", language: "css", color: "purple" },
+  { name: "index.html", language: "html", color: "orange" },
+  { name: "README.md", language: "markdown", color: "blue" },
+  { name: "api.ts", language: "typescript", color: "blue" },
+  { name: "utils.ts", language: "typescript", color: "blue" },
+  { name: "config.json", language: "json", color: "green" },
+  { name: "Button.tsx", language: "typescript", color: "blue" },
+  { name: "theme.css", language: "css", color: "purple" },
+];
+
+export const SIM_ASSISTANT_LINES: string[] = [
+  "I'll start by reading the relevant files to understand the current structure.",
+  "Found a small issue. I'm refactoring this so the logic is easier to follow.",
+  "Adding a guard clause to handle the empty case before computing the result.",
+  "I'm extracting the shared helper into its own module to avoid duplication.",
+  "Updating the types so the new field is validated end to end.",
+  "Writing a focused test that covers the edge case you mentioned.",
+  "Optimizing this loop — the previous version scanned the full list on each call.",
+  "I'll wire this into the UI now so you can preview the change live.",
+  "Cleaning up the leftover debug logging from the last iteration.",
+  "Re-running the suite to confirm nothing regressed.",
+];
+
+export const SIM_COMMANDS: string[] = [
+  "Ran npm run lint",
+  "Ran npm test",
+  "Ran git diff --stat",
+  "Ran tsc --noEmit",
+  "Ran prettier --check .",
+  "Ran node —check app.js",
+  "Ran git status",
+];
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** Fabricate a plausible assistant plan message (used for streamed replies). */
+export function randomAssistantPlan(task: WorkspaceTask): string {
+  const lead = pick(SIM_ASSISTANT_LINES);
+  const tail = pick([
+    `Then I'll apply the change to ${task.branch} and show you the diff.`,
+    `This keeps the change minimal and safe for ${task.goal.toLowerCase()}.`,
+    `Let me know if you'd like me to take a different approach here.`,
+    `I'll commit it once the checklist for this task is complete.`,
+  ]);
+  return `${lead} ${tail}`;
+}
+
+/** Fabricate a file-update message with 1–3 pills. */
+export function randomFileUpdateMessage(
+  taskId: string,
+): Pick<WorkspaceMessage, "content" | "files" | "diffAdd" | "diffDel"> {
+  const count = 1 + Math.floor(Math.random() * 3);
+  const shuffled = [...SIM_FILE_POOL].sort(() => Math.random() - 0.5).slice(0, count);
+  return {
+    content: "Updated",
+    files: shuffled.map((f) => ({ name: f.name, color: f.color })),
+    diffAdd: 6 + Math.floor(Math.random() * 40),
+    diffDel: 1 + Math.floor(Math.random() * 8),
+  };
+}
+
+/** Fabricate a new FileChange row (for the right-panel changes list). */
+export function randomFileChange(taskId: string): FileChange {
+  const f = pick(SIM_FILE_POOL);
+  return {
+    id: `fc-${taskId}-${Date.now()}-${Math.floor(Math.random() * 1e4)}`,
+    taskId,
+    name: f.name,
+    language: f.language,
+    diffAdd: 10 + Math.floor(Math.random() * 120),
+    diffDel: Math.floor(Math.random() * 20),
+  };
+}
+
+/** Fabricate a brand-new task (for the left-sidebar new-task animation). */
+export function randomNewTask(now = Date.now()): WorkspaceTask {
+  const titles = [
+    "Add keyboard shortcut to toggle the AI focus overlay",
+    "Refactor the board renderer to use a canvas backing store",
+    "Improve win-detection perf for very large boards",
+    "Add a dark-mode variant for the marketing hero",
+    "Cache the docs search index in localStorage",
+  ];
+  const total = 3 + Math.floor(Math.random() * 3);
+  return {
+    id: `task-sim-${now}-${Math.floor(Math.random() * 1e4)}`,
+    title: pick(titles),
+    tags: ["simulated"],
+    branch: `feat/sim-${Math.floor(Math.random() * 1000)}`,
+    project: "simulation",
+    goal: "Live-simulated task generated by the websocket sidecar",
+    status: "active",
+    model: pick(["GLM-5.2", "Claude Sonnet 4.6", "GPT-5.4"]),
+    tokensUsed: 0,
+    stepCount: 0,
+    totalSteps: total,
+    duration: "0m",
+    createdAt: new Date(now).toISOString(),
+    updatedAt: new Date(now).toISOString(),
+  };
+}
+

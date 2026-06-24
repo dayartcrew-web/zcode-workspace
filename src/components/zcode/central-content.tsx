@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   MoreHorizontal,
   Maximize2,
@@ -15,10 +16,15 @@ import {
   Sparkles,
   CheckCircle2,
   Loader2,
+  Brain,
+  User,
+  Bot,
+  Cpu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/store";
 import { FilePill, DiffBadge } from "./file-pill";
+import { useSimulationApi } from "./simulation-provider";
 import type { WorkspaceMessage } from "@/lib/types";
 import { toast } from "sonner";
 import {
@@ -31,6 +37,108 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+/* --------------------------- animation helpers --------------------------- */
+
+const MESSAGE_ENTER = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.28, ease: "easeOut" as const },
+};
+
+/** Smoothly animate a number toward a target whenever it changes. */
+function useCountUp(target: number, duration = 0.6) {
+  const [value, setValue] = useState(target);
+  const fromRef = useRef(target);
+  useEffect(() => {
+    const from = fromRef.current;
+    if (from === target) return;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / (duration * 1000));
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(from + (target - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = target;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return value;
+}
+
+/** Resolve true once streaming finishes, or false after `timeoutMs`. */
+function waitForStreamingEnd(timeoutMs: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    // Give the server a moment to emit sim:chat-start before checking.
+    const startedAt = Date.now();
+    const check = () => {
+      const state = useWorkspace.getState();
+      if (!state.streamingMessageId) {
+        resolve(true);
+        return;
+      }
+      if (Date.now() - startedAt >= timeoutMs) {
+        resolve(false);
+        return;
+      }
+      setTimeout(check, 250);
+    };
+    setTimeout(check, 300);
+  });
+}
+
+/** Assistant avatar badge — spinning brain while thinking, bot icon when done. */
+function AssistantAvatar({ thinking }: { thinking: boolean }) {
+  return (
+    <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+      {thinking ? (
+        <motion.span
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
+          className="inline-flex"
+        >
+          <Brain className="h-4 w-4" />
+        </motion.span>
+      ) : (
+        <Bot className="h-4 w-4" />
+      )}
+    </div>
+  );
+}
+
+/** "Thinking…" indicator shown while the assistant has started but emitted no tokens yet. */
+function ThinkingIndicator() {
+  return (
+    <div className="flex items-center gap-2 py-0.5 text-sm text-muted-foreground">
+      <motion.span
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
+        className="inline-flex text-primary"
+      >
+        <Brain className="h-4 w-4" />
+      </motion.span>
+      <span className="font-medium">Thinking</span>
+      <span className="flex items-center gap-0.5">
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            className="h-1 w-1 rounded-full bg-muted-foreground/70"
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{
+              duration: 1,
+              repeat: Infinity,
+              delay: i * 0.18,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </span>
+    </div>
+  );
+}
 
 export function CentralContent() {
   const detail = useWorkspace((s) => s.detail);
@@ -123,13 +231,15 @@ function IconButton({
 
 function MessageList() {
   const detail = useWorkspace((s) => s.detail)!;
+  const streamingMessageId = useWorkspace((s) => s.streamingMessageId);
+  const streamingContent = useWorkspace((s) => s.streamingContent);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [detail.messages.length, detail.id]);
+  }, [detail.messages.length, detail.id, streamingContent]);
 
   return (
     <div
@@ -140,6 +250,33 @@ function MessageList() {
         {detail.messages.map((m) => (
           <MessageItem key={m.id} message={m} />
         ))}
+        <AnimatePresence>
+          {streamingMessageId && (
+            <motion.div
+              key={`streaming-${streamingMessageId}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex gap-3"
+            >
+              <AssistantAvatar thinking={!streamingContent.trim()} />
+              <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-lg border border-border/60 bg-card/40 px-3.5 py-2.5">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  ZCode
+                </div>
+                {streamingContent.trim() ? (
+                  <p className="text-sm leading-relaxed text-foreground/90">
+                    {streamingContent}
+                    <span className="ml-0.5 inline-block h-3.5 w-0.5 translate-y-0.5 animate-pulse bg-primary/70" />
+                  </p>
+                ) : (
+                  <ThinkingIndicator />
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <FileChangesBlock />
         <GoalCompleteBanner />
       </div>
@@ -148,31 +285,71 @@ function MessageList() {
 }
 
 function MessageItem({ message }: { message: WorkspaceMessage }) {
+  const isUser = message.role === "user";
+  const isSystem = message.role === "system";
+
+  // Pick avatar + label by role
+  const avatar = isUser ? (
+    <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-accent text-foreground ring-1 ring-border">
+      <User className="h-4 w-4" />
+    </div>
+  ) : isSystem ? (
+    <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground ring-1 ring-border">
+      <Cpu className="h-4 w-4" />
+    </div>
+  ) : (
+    <AssistantAvatar thinking={false} />
+  );
+  const label = isUser ? "You" : isSystem ? "System" : "ZCode";
+
+  let body: React.ReactNode;
   switch (message.kind) {
     case "command":
-      return <CommandMessage message={message} />;
+      body = <CommandMessage message={message} />;
+      break;
     case "file-update":
-      return <FileUpdateMessage message={message} />;
+      body = <FileUpdateMessage message={message} />;
+      break;
     case "description":
     case "text":
     default:
-      return <TextMessage message={message} />;
+      body = <TextMessage message={message} />;
+      break;
   }
+
+  return (
+    <motion.div {...MESSAGE_ENTER} layout="position" className="flex gap-3">
+      {avatar}
+      <div
+        className={cn(
+          "flex min-w-0 flex-1 flex-col gap-1.5 rounded-lg border px-3.5 py-2.5",
+          isUser
+            ? "border-primary/30 bg-primary/5"
+            : "border-border/60 bg-card/40",
+        )}
+      >
+        <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </div>
+        {body}
+      </div>
+    </motion.div>
+  );
 }
 
 function CommandMessage({ message }: { message: WorkspaceMessage }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-2 py-1 font-mono text-[11px] text-foreground/80">
-          <Terminal className="h-3 w-3 text-primary" />
-          {message.command}
-        </span>
-        <CheckCircle2 className="h-3.5 w-3.5 text-diff-add" />
+      <div className="inline-flex w-fit items-center gap-1.5 rounded-md bg-muted/70 px-2 py-1 font-mono text-[11px] text-foreground/80 ring-1 ring-border/50">
+        <Terminal className="h-3 w-3 text-primary" />
+        {message.command}
+        <CheckCircle2 className="ml-0.5 h-3 w-3 text-diff-add" />
       </div>
-      <p className="text-sm leading-relaxed text-foreground/90">
-        {message.content}
-      </p>
+      {message.content && (
+        <p className="text-sm leading-relaxed text-foreground/90">
+          {message.content}
+        </p>
+      )}
     </div>
   );
 }
@@ -325,10 +502,15 @@ function GoalCompleteBanner() {
   if (!complete) return null;
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-diff-add/30 bg-diff-add/10 px-3 py-2 text-sm text-foreground/90">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="flex items-center gap-2 rounded-lg border border-diff-add/30 bg-diff-add/10 px-3 py-2 text-sm text-foreground/90"
+    >
       <CheckCircle2 className="h-4 w-4 text-diff-add" />
       All {detail.checklist.length} steps complete. Ready to commit &amp; push.
-    </div>
+    </motion.div>
   );
 }
 
@@ -344,6 +526,7 @@ function Composer() {
   const setSending = useWorkspace((s) => s.setSending);
   const appendMessage = useWorkspace((s) => s.appendMessage);
   const language = useWorkspace((s) => s.language);
+  const sim = useSimulationApi();
 
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -373,6 +556,27 @@ function Composer() {
 
     setComposerValue("");
     setSending(true);
+
+    // If the live simulation sidecar is connected, stream the reply via ws.
+    if (sim && sim.status === "connected") {
+      try {
+        sim.requestChat(detail.id, prompt);
+        // The streaming bubble + tokens are driven by sim:chat-* events;
+        // we keep the spinner until the stream ends. Bound the wait so a
+        // sidecar that dies mid-stream can't hang the composer forever.
+        const streamingDone = await waitForStreamingEnd(15000);
+        if (!streamingDone) {
+          // Timed out — clear any half-streamed state so the UI recovers.
+          useWorkspace.getState().cancelStreaming();
+          toast.error(language === "zh" ? "回复超时" : "Reply timed out", {
+            description: language === "zh" ? "模拟服务无响应" : "The simulation sidecar didn't respond.",
+          });
+        }
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
 
     try {
       const res = await fetch("/api/chat", {

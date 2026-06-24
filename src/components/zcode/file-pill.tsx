@@ -1,7 +1,31 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { FileCode, FileType2, Hash, FileText, Braces } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/** Animate a number toward its target whenever it changes (easeOutCubic). */
+function useCountUp(target: number, duration = 0.6) {
+  const [value, setValue] = useState(target);
+  const fromRef = useRef(target);
+  useEffect(() => {
+    const from = fromRef.current;
+    if (from === target) return;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / (duration * 1000));
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(from + (target - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = target;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return value;
+}
 
 type FileColor = "purple" | "orange" | "yellow" | "blue" | "green" | "red";
 
@@ -48,26 +72,36 @@ export function FilePill({
     className,
   );
 
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        title={title}
-        aria-pressed={active}
-        className={cls}
-      >
-        <Icon className="h-3 w-3" />
-        {name}
-      </button>
-    );
-  }
-
-  return (
-    <span className={cls} title={title}>
+  const inner = (
+    <>
       <Icon className="h-3 w-3" />
       {name}
-    </span>
+    </>
+  );
+
+  return (
+    <motion.span
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
+      className="inline-flex"
+    >
+      {onClick ? (
+        <button
+          type="button"
+          onClick={onClick}
+          title={title}
+          aria-pressed={active}
+          className={cls}
+        >
+          {inner}
+        </button>
+      ) : (
+        <span className={cls} title={title}>
+          {inner}
+        </span>
+      )}
+    </motion.span>
   );
 }
 
@@ -80,10 +114,12 @@ export function DiffBadge({
   del: number;
   className?: string;
 }) {
+  const a = useCountUp(add);
+  const d = useCountUp(del);
   return (
     <span className={cn("font-mono text-xs tabular-nums", className)}>
-      <span className="text-diff-add">+{add}</span>{" "}
-      <span className="text-diff-del">-{del}</span>
+      <span className="text-diff-add">+{a}</span>{" "}
+      <span className="text-diff-del">-{d}</span>
     </span>
   );
 }

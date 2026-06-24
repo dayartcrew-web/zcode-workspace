@@ -1,0 +1,20 @@
+{
+  "name": "zcode-sim-sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Live simulation websocket sidecar for the zcode-workspace dashboard. Emits realistic AI chat, task progress, file-change, new-task, and upload events.",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch sim-server.ts",
+    "start": "bun run sim-server.ts",
+    "dev:tsx": "tsx watch sim-server.ts",
+    "start:tsx": "tsx sim-server.ts"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0"
+  }
+}
