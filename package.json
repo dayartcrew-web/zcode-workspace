@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "dev:sim": "concurrently -n app,sim -c blue,green \"next dev -p 3000\" \"bun --cwd mini-services run sim-server.ts\"",
+    "dev:offset": "bun run scripts/dev-with-offset.ts",
     "build": "next build && cp -R .next/static .next/standalone/.next/ && cp -R public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
