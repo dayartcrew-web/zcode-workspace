@@ -96,7 +96,9 @@ const NEW_TASK_TITLES = [
 ];
 
 function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+  const v = arr[Math.floor(Math.random() * arr.length)];
+  if (!v) throw new Error("pick: empty array");
+  return v;
 }
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
@@ -153,7 +155,7 @@ const SEED_TASKS: TaskLike[] = [
 
 const simState = {
   running: true,
-  activeTaskId: SEED_TASKS[0].id,
+  activeTaskId: SEED_TASKS[0]?.id ?? "task-gomoku",
   // per-task mutable counters, keyed by task id
   progress: new Map<string, { tokens: number; step: number; doneIds: Set<string> }>(),
 };
@@ -176,7 +178,7 @@ function getProgress(taskId: string) {
 }
 
 function activeTask(): TaskLike {
-  return SEED_TASKS.find((t) => t.id === simState.activeTaskId) ?? SEED_TASKS[0];
+  return SEED_TASKS.find((t) => t.id === simState.activeTaskId) ?? SEED_TASKS[0]!;
 }
 
 /** Stream a full assistant message token-by-token to a single socket (or io). */

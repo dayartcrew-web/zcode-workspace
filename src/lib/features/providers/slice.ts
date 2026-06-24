@@ -126,6 +126,7 @@ export const createProvidersSlice: StateCreator<
         if (next < 0 || next >= p.models.length) return p;
         const models = [...p.models];
         const [moved] = models.splice(idx, 1);
+        if (!moved) return p;
         models.splice(next, 0, moved);
         return { ...p, models };
       }),
