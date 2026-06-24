@@ -887,6 +887,7 @@ function ModeMenu() {
   const setComposerMode = useWorkspace((s) => s.setComposerMode);
   const active =
     COMPOSER_MODES.find((m) => m.id === composerMode) ?? COMPOSER_MODES[0];
+  if (!active) return null;
   const ActiveIcon = active.Icon;
 
   return (
@@ -939,7 +940,7 @@ function PlusMenu() {
   const setEffort = useWorkspace((s) => s.setEffort);
 
   const effortLabel =
-    effort === "max" ? "Max" : effort[0].toUpperCase() + effort.slice(1);
+    effort === "max" ? "Max" : effort.charAt(0).toUpperCase() + effort.slice(1);
 
   return (
     <DropdownMenu>
@@ -1162,6 +1163,7 @@ function ModelMenu() {
   const model = useWorkspace((s) => s.model);
   const setModel = useWorkspace((s) => s.setModel);
   const active = MODELS.find((m) => m.id === model) ?? MODELS[0];
+  if (!active) return null;
 
   return (
     <DropdownMenu>

@@ -62,7 +62,7 @@ export function LeftSidebar() {
 
   function isCollapsed(project: string) {
     // If explicitly set, use it; otherwise collapse unless it contains the active task
-    if (project in collapsed) return collapsed[project];
+    if (project in collapsed) return collapsed[project] ?? false;
     const hasActive = groups
       .find(([p]) => p === project)?.[1]
       .some((t) => t.id === activeTaskId);

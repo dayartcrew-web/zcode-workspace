@@ -18,7 +18,9 @@ export const SIM_COMMANDS: string[] = [
 ];
 
 function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+  const v = arr[Math.floor(Math.random() * arr.length)];
+  if (!v) throw new Error("pick: empty array");
+  return v;
 }
 
 /**
