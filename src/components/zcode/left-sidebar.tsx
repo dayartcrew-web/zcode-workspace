@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Settings,
@@ -17,9 +17,11 @@ import {
   Globe,
   Loader2,
   Check,
+  WifiOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/store";
+import { relativeTime } from "@/lib/format";
 import type { WorkspaceTask } from "@/lib/types";
 import {
   Tooltip,
@@ -415,16 +417,69 @@ function WorkspaceRow({
           {task.title}
         </span>
 
-        {/* Refresh icon on the right */}
-        <RefreshCw
-          className={cn(
-            "h-3 w-3 shrink-0",
-            active
-              ? "text-muted-foreground"
-              : "text-muted-foreground/40 group-hover:text-muted-foreground",
-          )}
-        />
+        {/* Sync indicator on the right: spinning while reconnecting, timestamp when connected, offline icon when down. */}
+        <SyncIndicator active={active} updatedAt={task.updatedAt} />
       </button>
     </motion.li>
+  );
+}
+
+/* --------------------------- Sync indicator --------------------------- */
+
+/**
+ * Right-aligned sync indicator on a workspace row.
+ *   connecting → spinning RefreshCw (amber)
+ *   connected  → relative timestamp like "2m" (faint; muted)
+ *   disconnected/offline → WifiOff icon (red-tinted)
+ *
+ * Re-ticks every 15s so the relative timestamp stays fresh while idle.
+ */
+function SyncIndicator({
+  active,
+  updatedAt,
+}: {
+  active: boolean;
+  updatedAt: string;
+}) {
+  const simStatus = useWorkspace((s) => s.simStatus);
+  const [, tick] = useState(0);
+
+  // Refresh the relative-time label periodically.
+  useEffect(() => {
+    const iv = setInterval(() => tick((n) => n + 1), 15000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const reconnecting = simStatus === "connecting" || simStatus === "disconnected";
+  const offline = simStatus === "offline";
+
+  if (reconnecting) {
+    return (
+      <RefreshCw className="h-3 w-3 shrink-0 animate-spin text-amber-400" />
+    );
+  }
+  if (offline) {
+    return (
+      <WifiOff
+        className={cn(
+          "h-3 w-3 shrink-0 text-destructive/70",
+          active ? "" : "opacity-70",
+        )}
+      />
+    );
+  }
+  // Connected: relative timestamp of the last update.
+  return (
+    <span
+      className={cn(
+        "shrink-0 tabular-nums text-[10px]",
+        active
+          ? "text-muted-foreground"
+          : "text-muted-foreground/40 group-hover:text-muted-foreground",
+      )}
+      title={`Last updated ${relativeTime(updatedAt)} ago`}
+    >
+      {relativeTime(updatedAt)}
+    </span>
   );
 }
