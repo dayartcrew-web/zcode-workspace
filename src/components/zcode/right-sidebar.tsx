@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   GitBranch,
@@ -16,6 +16,7 @@ import {
   Plus,
   RefreshCw,
   Check,
+  Loader2,
   MoreHorizontal,
   Minus,
   Maximize2,
@@ -249,20 +250,52 @@ function ChangesCard() {
   const detail = useWorkspace((s) => s.detail)!;
   const totalAdd = detail.fileChanges.reduce((s, f) => s + f.diffAdd, 0);
   const totalDel = detail.fileChanges.reduce((s, f) => s + f.diffDel, 0);
+  const fileCount = useCountUp(detail.fileChanges.length);
 
   return (
     <Card>
       <CardHeader
         icon={<GitBranch className="h-3.5 w-3.5" />}
         title="Changes"
-        right={<DiffBadge add={totalAdd} del={totalDel} />}
+        right={
+          <span className="flex items-center gap-1.5">
+            <motion.span
+              className="h-1.5 w-1.5 rounded-full bg-emerald-400"
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <DiffBadge add={totalAdd} del={totalDel} />
+          </span>
+        }
       />
       <BranchSelect />
       <p className="mt-2 px-1 text-[10px] text-muted-foreground">
-        {detail.fileChanges.length} files changed
+        {fileCount} {fileCount === 1 ? "file" : "files"} changed
       </p>
     </Card>
   );
+}
+
+/** Animate an integer toward its target (easeOutCubic) when it changes. */
+function useCountUp(target: number, duration = 0.6) {
+  const [value, setValue] = useState(target);
+  const fromRef = useRef(target);
+  useEffect(() => {
+    const from = fromRef.current;
+    if (from === target) return;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / (duration * 1000));
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(from + (target - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = target;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return value;
 }
 
 /* --------------------------- Branch dropdown --------------------------- */
@@ -427,6 +460,35 @@ function CommitCard() {
   const complete =
     detail.checklist.length > 0 && detail.checklist.every((c) => c.done);
 
+  // Simulated auto-commit: when the task becomes complete, run a short
+  // "Committing…" animation, fire a success toast, and mark committed.
+  const [phase, setPhase] = useState<"idle" | "committing" | "done">("idle");
+  const committedKey = `${detail.id}-${detail.branch}`;
+
+  useEffect(() => {
+    // Reset phase when switching tasks/branches.
+    setPhase("idle");
+  }, [committedKey]);
+
+  useEffect(() => {
+    if (!complete || phase !== "idle") return;
+    setPhase("committing");
+    const iv = setTimeout(() => {
+      setPhase("done");
+      toast.success("Committed & pushed", { description: msg });
+    }, 1400);
+    return () => clearTimeout(iv);
+  }, [complete, phase, committedKey, msg]);
+
+  const label =
+    phase === "committing"
+      ? "Committing…"
+      : phase === "done"
+        ? "Pushed ✓"
+        : complete
+          ? "Commit & push"
+          : "Complete task first";
+
   return (
     <Card>
       <CardHeader
@@ -438,16 +500,28 @@ function CommitCard() {
         onChange={(e) => setMsg(e.target.value)}
         placeholder="Commit message…"
         rows={2}
-        className="scrollbar-thin w-full resize-none rounded-md border border-border bg-background/60 px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+        disabled={phase !== "idle"}
+        className="scrollbar-thin w-full resize-none rounded-md border border-border bg-background/60 px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none disabled:opacity-60"
       />
       <div className="mt-2 flex items-center gap-1.5">
         <Button
           size="sm"
-          className="h-7 flex-1 gap-1.5 bg-primary text-xs font-medium text-primary-foreground hover:bg-primary/90"
-          disabled={!complete}
+          className={cn(
+            "h-7 flex-1 gap-1.5 text-xs font-medium",
+            phase === "done"
+              ? "bg-diff-add/20 text-diff-add hover:bg-diff-add/30"
+              : "bg-primary text-primary-foreground hover:bg-primary/90",
+          )}
+          disabled={!complete || phase !== "idle"}
         >
-          <Plus className="h-3 w-3" />
-          {complete ? "Commit & push" : "Complete task first"}
+          {phase === "committing" ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : phase === "done" ? (
+            <Check className="h-3 w-3" />
+          ) : (
+            <Plus className="h-3 w-3" />
+          )}
+          {label}
         </Button>
       </div>
     </Card>
@@ -557,10 +631,13 @@ function UploadCard() {
 
 function ProgressCard() {
   const detail = useWorkspace((s) => s.detail)!;
-  const done = detail.checklist.filter((c) => c.done).length;
-  const total = detail.checklist.length;
+  const sorted = [...detail.checklist].sort((a, b) => a.order - b.order);
+  const done = sorted.filter((c) => c.done).length;
+  const total = sorted.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const allDone = total > 0 && done === total;
+  // The first undone item is the one the AI is actively working on.
+  const activeId = allDone ? null : sorted.find((c) => !c.done)?.id ?? null;
 
   return (
     <Card>
@@ -584,37 +661,44 @@ function ProgressCard() {
         />
       </div>
 
-      {/* View-only checklist (the AI owns these items; not user-toggleable) */}
+      {/* View-only checklist (the AI owns these items; not user-toggleable). */}
       <ul className="space-y-1">
-        {detail.checklist.map((c) => (
-          <li
-            key={c.id}
-            className="flex items-start gap-2 rounded-md px-1.5 py-1 text-xs"
-          >
-            {c.done ? (
-              <motion.span
-                initial={{ scale: 0.6, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 320, damping: 18 }}
-                className="mt-0.5 shrink-0"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5 text-diff-add" />
-              </motion.span>
-            ) : (
-              <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
-            )}
-            <span
-              className={cn(
-                "leading-snug",
-                c.done
-                  ? "text-muted-foreground line-through decoration-diff-add/40"
-                  : "text-foreground/90",
-              )}
+        {sorted.map((c) => {
+          const isActive = c.id === activeId;
+          return (
+            <li
+              key={c.id}
+              className="flex items-start gap-2 rounded-md px-1.5 py-1 text-xs"
             >
-              {c.text}
-            </span>
-          </li>
-        ))}
+              {c.done ? (
+                <motion.span
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 18 }}
+                  className="mt-0.5 shrink-0"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 text-diff-add" />
+                </motion.span>
+              ) : isActive ? (
+                <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+              ) : (
+                <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+              )}
+              <span
+                className={cn(
+                  "leading-snug",
+                  c.done
+                    ? "text-muted-foreground line-through decoration-diff-add/40"
+                    : isActive
+                      ? "text-foreground"
+                      : "text-foreground/90",
+                )}
+              >
+                {c.text}
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </Card>
   );
