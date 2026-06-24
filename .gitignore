@@ -50,3 +50,38 @@ prisma/*.db-journal
 
 # Vercel / platform
 .vercel
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Playwright MCP / browser-automation artifacts (screenshots, snapshots, traces)
+.playwright-mcp/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Masday workflow artifacts — local state, worktrees, reports, context packs.
+# (Worktrees are full checkouts used for task isolation; never commit them.)
+.masday/worktrees/
+.masday/state/
+.masday/context/
+.masday/research/
+.masday/reports/
+.masday/plans/
+.masday/notes/
+!.masday/.gitkeep
+
+# Local sidecar / service runtime artifacts
+mini-services/node_modules/
+mini-services/*.log
+
+# OS / editor caches
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.cache/
+.temp/
+tmp/
+
