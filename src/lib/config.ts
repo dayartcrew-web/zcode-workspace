@@ -11,11 +11,6 @@
  *
  * Adapted from the Synara `Config.all({...})` pattern (pattern port to zod;
  * no code copied).
- *
- * NOTE on NEXT_PUBLIC_*: these are exposed to the browser by Next.js, so they
- * are safe to read on both client and server. Non-public vars (DATABASE_URL,
- * etc.) are server-only — importing `config` into client code will expose only
- * the fields Next inlines; treat secrets accordingly.
  */
 import { z } from "zod";
 
@@ -30,20 +25,6 @@ const ConfigSchema = z.object({
 
   /** Prisma SQLite database URL (server-only). */
   databaseUrl: z.string().min(1, "DATABASE_URL is required").default("file:./dev.db"),
-
-  /* --- Simulation sidecar (NEXT_PUBLIC_* → client-exposed) --- */
-
-  /** Port the mini-services sidecar listens on. */
-  simPort: z.coerce.number().int().positive().default(4001),
-
-  /** Optional explicit sidecar URL (overrides proxy/port logic). */
-  nextPublicSimUrl: z.string().url().or(z.literal("")).default(""),
-
-  /** Whether to route the sidecar through the Caddy proxy. */
-  nextPublicSimProxy: z
-    .string()
-    .default("0")
-    .transform((v) => v === "1"),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -60,9 +41,6 @@ export function parseConfig(
     nodeEnv: env.NODE_ENV,
     port: env.PORT,
     databaseUrl: env.DATABASE_URL,
-    simPort: env.SIM_PORT ?? env.NEXT_PUBLIC_SIM_PORT,
-    nextPublicSimUrl: env.NEXT_PUBLIC_SIM_URL,
-    nextPublicSimProxy: env.NEXT_PUBLIC_SIM_PROXY,
   };
 
   const result = ConfigSchema.safeParse(mapped);
