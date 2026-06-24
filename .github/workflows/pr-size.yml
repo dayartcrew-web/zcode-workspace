@@ -1,0 +1,92 @@
+name: PR Size
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    name: Label PR by size
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute effective changed lines (tests excluded)
+        id: size
+        run: |
+          # Effective lines = additions + deletions across non-test files.
+          # Test files (*.test.* / *.spec.* / __tests__/*) are excluded so
+          # PRs that are mostly tests aren't penalized for size.
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          # Diff against the merge base so only this PR's changes count.
+          DIFF=$(git diff --numstat "$BASE_SHA" "$HEAD_SHA" || git diff --numstat origin/${{ github.base_ref }} HEAD)
+
+          EFFECTIVE=0
+          while IFS=$'\t' read -r added deleted path; do
+            [ -z "$path" ] && continue
+            # Skip test files
+            case "$path" in
+              *.test.ts|*.test.tsx|*.test.js|*.test.jsx|*.spec.ts|*.spec.tsx|*.spec.js|*.spec.jsx|*/__tests__/*) continue ;;
+            esac
+            # numstat emits "-" for binary files; treat as 0
+            [ "$added" = "-" ] && added=0
+            [ "$deleted" = "-" ] && deleted=0
+            EFFECTIVE=$((EFFECTIVE + added + deleted))
+          done <<< "$DIFF"
+
+          echo "effective=$EFFECTIVE" >> "$GITHUB_OUTPUT"
+          echo "Effective changed lines (tests excluded): $EFFECTIVE"
+
+      - name: Choose size label
+        id: label
+        run: |
+          EFFECTIVE=${{ steps.size.outputs.effective }}
+          if   [ "$EFFECTIVE" -le 9 ];   then SIZE="size:XS"
+          elif [ "$EFFECTIVE" -le 29 ];  then SIZE="size:S"
+          elif [ "$EFFECTIVE" -le 99 ];  then SIZE="size:M"
+          elif [ "$EFFECTIVE" -le 499 ]; then SIZE="size:L"
+          elif [ "$EFFECTIVE" -le 999 ]; then SIZE="size:XL"
+          else                                SIZE="size:XXL"
+          fi
+          echo "label=$SIZE" >> "$GITHUB_OUTPUT"
+          echo "Selected label: $SIZE"
+
+      - name: Apply size label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const newLabel = '${{ steps.label.outputs.label }}';
+            const sizeLabels = ['size:XS','size:S','size:M','size:L','size:XL','size:XXL'];
+            const { data: current } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const toRemove = current
+              .map((l) => l.name)
+              .filter((name) => sizeLabels.includes(name) && name !== newLabel);
+            for (const name of toRemove) {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name,
+              }).catch(() => {});
+            }
+            const has = current.some((l) => l.name === newLabel);
+            if (!has) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: [newLabel],
+              });
+            }
