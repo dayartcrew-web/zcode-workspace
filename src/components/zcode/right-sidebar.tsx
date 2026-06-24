@@ -25,6 +25,10 @@ import {
   GitCompare,
   Wrench,
   Upload as UploadIcon,
+  FolderOpen,
+  SquareTerminal,
+  Code2,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/store";
@@ -60,9 +64,6 @@ export function RightSidebar() {
   const rightPanelView = useWorkspace((s) => s.rightPanelView);
   const setRightPanelView = useWorkspace((s) => s.setRightPanelView);
   const setSelectedFile = useWorkspace((s) => s.setSelectedFile);
-  const toggleMaximized = useWorkspace((s) => s.toggleCenterMaximized);
-  const maximized = useWorkspace((s) => s.centerMaximized);
-  const deleteTask = useWorkspace((s) => s.deleteTask);
 
   // When a file is selected for diff, show the diff view regardless of tab
   if (detail && selectedFileId) return <FileDiffView />;
@@ -100,13 +101,7 @@ export function RightSidebar() {
 
         {/* Window controls */}
         <div className="ml-auto flex shrink-0 items-center gap-0.5">
-          <button
-            aria-label="More"
-            onClick={() => toast.info("Panel options", { description: "More actions." })}
-            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" />
-          </button>
+          <PanelMoreMenu />
           <button
             aria-label="Minimize"
             onClick={() => toast.info("Minimize panel", { description: "Collapse this panel." })}
@@ -115,20 +110,15 @@ export function RightSidebar() {
             <Minus className="h-3.5 w-3.5" />
           </button>
           <button
-            aria-label={maximized ? "Exit maximize" : "Maximize"}
-            onClick={toggleMaximized}
-            className={cn(
-              "rounded p-1",
-              maximized
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground",
-            )}
+            aria-label="Maximize"
+            onClick={() => toast.info("Maximize panel", { description: "Expand this panel." })}
+            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </button>
           <button
             aria-label="Close"
-            onClick={() => deleteTask(detail.id)}
+            onClick={() => toast.info("Close panel", { description: "Hide this panel." })}
             className="rounded p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
           >
             <X className="h-3.5 w-3.5" />
@@ -183,6 +173,55 @@ function ViewToggle({
     >
       {icon}
     </button>
+  );
+}
+
+/* Right-panel "More" menu — open project with external tools. */
+function PanelMoreMenu() {
+  const detail = useWorkspace((s) => s.detail)!;
+  const projectPath = `~/projects/${detail.project}`;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label="More"
+          className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="bottom" align="end" className="w-56">
+        <DropdownMenuItem
+          onSelect={() => toast.info("Opening in File Explorer…", { description: projectPath })}
+          className="gap-2 text-xs"
+        >
+          <FolderOpen className="h-3.5 w-3.5" />
+          Open in File Explorer
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => toast.info("Opening in VS Code…", { description: projectPath })}
+          className="gap-2 text-xs"
+        >
+          <Code2 className="h-3.5 w-3.5" />
+          Open in VS Code
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => toast.info("Opening in terminal…", { description: projectPath })}
+          className="gap-2 text-xs"
+        >
+          <SquareTerminal className="h-3.5 w-3.5" />
+          Open in terminal
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => toast.info("Opening in browser…", { description: projectPath })}
+          className="gap-2 text-xs"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          Open in browser
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -269,7 +308,7 @@ function ChangesCard() {
         }
       />
       <BranchSelect />
-      <p className="mt-2 px-1 text-[10px] text-muted-foreground">
+      <p className="mt-2 px-1 text-xs text-muted-foreground">
         {fileCount} {fileCount === 1 ? "file" : "files"} changed
       </p>
     </Card>
@@ -320,7 +359,7 @@ function BranchSelect() {
           align="start"
           className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[14rem]"
         >
-          <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">
             Switch branch
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -422,7 +461,7 @@ function NewBranchDialog({
             className="font-mono text-sm"
             autoFocus
           />
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Use a prefix like <span className="font-mono">feat/</span>,{" "}
             <span className="font-mono">fix/</span>, or{" "}
             <span className="font-mono">chore/</span>.
@@ -548,14 +587,14 @@ function GoalCard() {
         icon={<Target className="h-3.5 w-3.5" />}
         title="Goal"
         right={
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {complete ? "Complete" : "In progress"}
           </span>
         }
       />
       <p className="text-sm leading-snug text-foreground/90">{detail.goal}</p>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <ListChecks className="h-3 w-3" />
           {detail.stepCount}/{detail.totalSteps}
@@ -597,7 +636,7 @@ function UploadCard() {
         icon={<UploadIcon className="h-3.5 w-3.5" />}
         title="Transfers"
         right={
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {uploads.length} active
           </span>
         }
@@ -605,7 +644,7 @@ function UploadCard() {
       <ul className="space-y-2">
         {uploads.map((u) => (
           <li key={u.id} className="flex flex-col gap-1">
-            <div className="flex items-center justify-between text-[11px]">
+            <div className="flex items-center justify-between text-xs">
               <span className="truncate text-foreground/80">{u.name}</span>
               <span className="tabular-nums text-muted-foreground">
                 {u.done ? "done" : `${Math.round(u.progress)}%`}
@@ -645,7 +684,7 @@ function ProgressCard() {
         icon={<Flag className="h-3.5 w-3.5" />}
         title="Progress"
         right={
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {done}/{total}
           </span>
         }
