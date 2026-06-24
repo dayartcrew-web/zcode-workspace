@@ -557,7 +557,10 @@ function UploadCard() {
 
 function ProgressCard() {
   const detail = useWorkspace((s) => s.detail)!;
-  const toggle = useWorkspace((s) => s.toggleChecklistItem);
+  const done = detail.checklist.filter((c) => c.done).length;
+  const total = detail.checklist.length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const allDone = total > 0 && done === total;
 
   return (
     <Card>
@@ -566,34 +569,50 @@ function ProgressCard() {
         title="Progress"
         right={
           <span className="text-[10px] text-muted-foreground">
-            {detail.checklist.filter((c) => c.done).length}/
-            {detail.checklist.length}
+            {done}/{total}
           </span>
         }
       />
-      <ul className="space-y-1.5">
+
+      {/* Mini progress bar reflecting checklist completion */}
+      <div className="mb-2.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+        <motion.div
+          className={cn("h-full rounded-full", allDone ? "bg-diff-add" : "bg-primary")}
+          initial={false}
+          animate={{ width: `${pct}%` }}
+          transition={{ type: "spring", stiffness: 120, damping: 20 }}
+        />
+      </div>
+
+      {/* View-only checklist (the AI owns these items; not user-toggleable) */}
+      <ul className="space-y-1">
         {detail.checklist.map((c) => (
-          <li key={c.id}>
-            <button
-              onClick={() => toggle(c.id)}
-              className="flex w-full items-start gap-2 rounded-md px-1.5 py-1 text-left text-xs hover:bg-accent/50"
-            >
-              {c.done ? (
-                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-diff-add" />
-              ) : (
-                <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              )}
-              <span
-                className={cn(
-                  "leading-snug",
-                  c.done
-                    ? "text-muted-foreground line-through"
-                    : "text-foreground/90",
-                )}
+          <li
+            key={c.id}
+            className="flex items-start gap-2 rounded-md px-1.5 py-1 text-xs"
+          >
+            {c.done ? (
+              <motion.span
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 320, damping: 18 }}
+                className="mt-0.5 shrink-0"
               >
-                {c.text}
-              </span>
-            </button>
+                <CheckCircle2 className="h-3.5 w-3.5 text-diff-add" />
+              </motion.span>
+            ) : (
+              <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+            )}
+            <span
+              className={cn(
+                "leading-snug",
+                c.done
+                  ? "text-muted-foreground line-through decoration-diff-add/40"
+                  : "text-foreground/90",
+              )}
+            >
+              {c.text}
+            </span>
           </li>
         ))}
       </ul>

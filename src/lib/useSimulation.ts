@@ -22,43 +22,14 @@ import type {
   WorkspaceMessage,
   WorkspaceTask,
 } from "@/lib/types";
+// SIM_PORT + resolveSimTarget now live in the simulation feature module and
+// are re-exported here for any external importer.
+import {
+  SIM_PORT,
+  resolveSimTarget,
+} from "@/lib/features/simulation";
 
-/**
- * Sidecar port. Override with NEXT_PUBLIC_SIM_PORT for non-default setups.
- */
-export const SIM_PORT = Number(process.env.NEXT_PUBLIC_SIM_PORT ?? 4001);
-
-/**
- * Resolve the socket.io connection target + options.
- *
- * Two deployment shapes are supported:
- *
- * 1. Direct dev (no reverse proxy): the client connects straight to the
- *    sidecar at http://localhost:<SIM_PORT>, using path "/". This is the
- *    default and what `bun run dev` + `bun run sim` use.
- *
- * 2. Behind the Caddy proxy: set NEXT_PUBLIC_SIM_PROXY=1 so the client
- *    connects same-origin via "/?XTransformPort=<SIM_PORT>" (Caddy's
- *    @transform_port_query matcher routes it to the sidecar). This mirrors
- *    examples/websocket/frontend.tsx and is what the production Caddyfile
- *    expects.
- *
- * Both use path: "/" to match sim-server.ts (which intentionally uses "/"
- * rather than socket.io's default "/socket.io/").
- */
-function resolveSimTarget(): { url: string; path: string } {
-  // Explicit full URL wins (e.g. NEXT_PUBLIC_SIM_URL=http://box:4001).
-  const explicit = process.env.NEXT_PUBLIC_SIM_URL;
-  if (explicit) return { url: explicit, path: "/" };
-
-  const useProxy = process.env.NEXT_PUBLIC_SIM_PROXY === "1";
-  if (useProxy) {
-    // Same-origin; Caddy reads XTransformPort and proxies to the sidecar.
-    return { url: `/?XTransformPort=${SIM_PORT}`, path: "/" };
-  }
-  // Default: direct to the sidecar (dev without Caddy).
-  return { url: `http://localhost:${SIM_PORT}`, path: "/" };
-}
+export { SIM_PORT };
 
 /* --------------------------- event payload types --------------------------- */
 
