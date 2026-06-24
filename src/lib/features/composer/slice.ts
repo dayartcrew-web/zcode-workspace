@@ -1,14 +1,16 @@
 import type { StateCreator } from "zustand";
 import type { WorkspaceState } from "@/lib/store";
 
+export type ComposerMode = "ask" | "plan" | "auto";
+
 export interface ComposerSlice {
   composerValue: string;
-  composerMode: "ask" | "auto";
+  composerMode: ComposerMode;
   model: string;
   effort: "low" | "medium" | "high" | "max";
   askBeforeChanges: boolean;
   setComposerValue: (v: string) => void;
-  setComposerMode: (m: "ask" | "auto") => void;
+  setComposerMode: (m: ComposerMode) => void;
   setModel: (m: string) => void;
   setEffort: (e: "low" | "medium" | "high" | "max") => void;
   toggleAskBeforeChanges: () => void;
@@ -30,6 +32,7 @@ export const createComposerSlice: StateCreator<
   setComposerMode: (m) => set({ composerMode: m }),
   setModel: (m) => set({ model: m }),
   setEffort: (e) => set({ effort: e }),
+  // keep in sync: "plan" behaves like "ask" (no auto-apply), "auto" applies freely.
   toggleAskBeforeChanges: () =>
     set((s) => ({ askBeforeChanges: !s.askBeforeChanges })),
 });

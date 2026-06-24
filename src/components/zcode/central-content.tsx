@@ -20,9 +20,19 @@ import {
   User,
   Bot,
   Cpu,
+  ClipboardList,
+  Pin,
+  Archive,
+  Mail,
+  FolderOpen,
+  Copy,
+  Settings,
+  LineChart,
+  Flag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/store";
+import type { ComposerMode } from "@/lib/features/composer/slice";
 import { FilePill, DiffBadge } from "./file-pill";
 import { useSimulationApi } from "./simulation-provider";
 import type { WorkspaceMessage } from "@/lib/types";
@@ -37,6 +47,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { formatTokens } from "@/lib/format";
 
 /* --------------------------- animation helpers --------------------------- */
 
@@ -185,9 +201,7 @@ function TaskHeader() {
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
-        <IconButton label="More">
-          <MoreHorizontal className="h-4 w-4" />
-        </IconButton>
+        <MoreMenu />
         <IconButton label="Minimize">
           <Minus className="h-4 w-4" />
         </IconButton>
@@ -204,7 +218,7 @@ function TaskHeader() {
 
 function TagPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+    <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
       {label}
     </span>
   );
@@ -224,6 +238,128 @@ function IconButton({
     >
       {children}
     </button>
+  );
+}
+
+/* "More" task actions dropdown — mirrors the reference image list. */
+function MoreMenu() {
+  const detail = useWorkspace((s) => s.detail)!;
+  const taskPath = `~/projects/${detail.project}/${detail.id}`;
+  const logPath = `~/projects/${detail.project}/.zcode/logs/${detail.id}.log`;
+
+  const copy = (label: string, value: string) => {
+    void navigator.clipboard?.writeText(value);
+    toast.success(`${label} copied`, {
+      description: <span className="font-mono text-xs">{value}</span>,
+    });
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label="More"
+          className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="bottom" align="end" className="w-60">
+        {/* Task actions */}
+        <DropdownMenuItem
+          onSelect={() => toast.info("Pinned task", { description: detail.title })}
+          className="gap-2 text-xs"
+        >
+          <Pin className="h-3.5 w-3.5" />
+          Pin task
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => toast.info("Rename task", { description: "Enter a new title." })}
+          className="gap-2 text-xs"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Rename task
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => toast.info("Archived task", { description: detail.title })}
+          className="gap-2 text-xs"
+        >
+          <Archive className="h-3.5 w-3.5" />
+          Archive task
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => toast.info("Marked as unread", { description: detail.title })}
+          className="gap-2 text-xs"
+        >
+          <Mail className="h-3.5 w-3.5" />
+          Mark as unread
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        {/* Filesystem */}
+        <DropdownMenuItem
+          onSelect={() => toast.info("Open in File Explorer", { description: taskPath })}
+          className="gap-2 text-xs"
+        >
+          <FolderOpen className="h-3.5 w-3.5" />
+          Open in File Explorer
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => copy("Path", `./${detail.branch}`)}
+          className="gap-2 text-xs"
+        >
+          <Copy className="h-3.5 w-3.5" />
+          Copy path
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => copy("Task path", taskPath)}
+          className="gap-2 text-xs"
+        >
+          <Copy className="h-3.5 w-3.5" />
+          Copy task path
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => copy("Log path", logPath)}
+          className="gap-2 text-xs"
+        >
+          <Copy className="h-3.5 w-3.5" />
+          Copy log path
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => copy("Session ID", detail.id)}
+          className="gap-2 text-xs"
+        >
+          <Copy className="h-3.5 w-3.5" />
+          Copy session ID
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        {/* Diagnostics */}
+        <DropdownMenuItem
+          onSelect={() => toast.info("Go to config", { description: "Opening .zcode/settings.json" })}
+          className="gap-2 text-xs"
+        >
+          <Settings className="h-3.5 w-3.5" />
+          Go to config
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => toast.info("Model trajectory", { description: `Model: ${detail.model} · ${detail.tokensUsed.toLocaleString()} tokens` })}
+          className="gap-2 text-xs"
+        >
+          <LineChart className="h-3.5 w-3.5" />
+          View model trajectory
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => toast.info("Report issue", { description: "Opens the issue template." })}
+          className="gap-2 text-xs"
+        >
+          <Flag className="h-3.5 w-3.5" />
+          Report issue
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -262,7 +398,7 @@ function MessageList() {
             >
               <AssistantAvatar thinking={!streamingContent.trim()} />
               <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-lg border border-border/60 bg-card/40 px-3.5 py-2.5">
-                <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   ZCode
                 </div>
                 {streamingContent.trim() ? (
@@ -328,7 +464,7 @@ function MessageItem({ message }: { message: WorkspaceMessage }) {
             : "border-border/60 bg-card/40",
         )}
       >
-        <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </div>
         {body}
@@ -340,7 +476,7 @@ function MessageItem({ message }: { message: WorkspaceMessage }) {
 function CommandMessage({ message }: { message: WorkspaceMessage }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="inline-flex w-fit items-center gap-1.5 rounded-md bg-muted/70 px-2 py-1 font-mono text-[11px] text-foreground/80 ring-1 ring-border/50">
+      <div className="inline-flex w-fit items-center gap-1.5 rounded-md bg-muted/70 px-2 py-1 font-mono text-xs text-foreground/80 ring-1 ring-border/50">
         <Terminal className="h-3 w-3 text-primary" />
         {message.command}
         <CheckCircle2 className="ml-0.5 h-3 w-3 text-diff-add" />
@@ -365,7 +501,7 @@ function FileUpdateMessage({ message }: { message: WorkspaceMessage }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm text-foreground/90">
       <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="font-medium">{message.content}</span>
+      <span className="text-xs font-medium">{message.content}</span>
       {message.files?.map((f) => {
         const fileId = byName.get(f.name);
         const clickable = Boolean(fileId);
@@ -407,7 +543,7 @@ function FileChangesBlock() {
   const setSelectedFile = useWorkspace((s) => s.setSelectedFile);
   const setRightPanelView = useWorkspace((s) => s.setRightPanelView);
   const selectedFileId = useWorkspace((s) => s.selectedFileId);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   if (detail.fileChanges.length === 0) return null;
 
   const totalAdd = detail.fileChanges.reduce((s, f) => s + f.diffAdd, 0);
@@ -430,7 +566,7 @@ function FileChangesBlock() {
             )}
           />
           Changes
-          <span className="ml-1 text-[10px] font-normal normal-case tracking-normal text-muted-foreground/70">
+          <span className="ml-1 text-xs font-normal normal-case tracking-normal text-muted-foreground/70">
             ({detail.fileChanges.length})
           </span>
         </span>
@@ -467,7 +603,7 @@ function FileChangesBlock() {
           })}
         </ul>
       )}
-      <p className="mt-2 px-1 text-[10px] text-muted-foreground/70">
+      <p className="mt-2 px-1 text-xs text-muted-foreground/70">
         Click a file to view its diff in the side panel.
       </p>
     </div>
@@ -663,14 +799,16 @@ function Composer() {
             rows={1}
             className="scrollbar-thin block w-full resize-none bg-transparent px-3.5 pt-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
-          {/* Controls row: [+] menu on left, model + send on right */}
+          {/* Controls row: [+] + mode menu on left, model + send on right */}
           <div className="flex items-center justify-between gap-2 px-2.5 pb-2 pt-1.5">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <PlusMenu />
+              <ModeMenu />
             </div>
 
             <div className="flex items-center gap-2">
               <ModelMenu />
+              <ContextWindowIndicator />
               <button
                 onClick={handleSend}
                 disabled={!composerValue.trim() || isSending}
@@ -691,7 +829,7 @@ function Composer() {
             </div>
           </div>
         </div>
-        <p className="mt-1.5 px-1 text-[10px] text-muted-foreground">
+        <p className="mt-1.5 px-1 text-xs text-muted-foreground">
           {language === "zh"
             ? "ZCode 可能会犯错。请审查变更。"
             : "ZCode can make mistakes. Review changes before committing."}
@@ -716,9 +854,87 @@ const EFFORTS: { id: "low" | "medium" | "high" | "max"; label: string; hint: str
   { id: "max", label: "Max", hint: "Full plan · slowest" },
 ];
 
+/* Mode selector dropup: Ask | Plan | Auto, surfaced in the composer bar.
+   The current mode's label is always visible on the trigger. */
+const COMPOSER_MODES: {
+  id: ComposerMode;
+  label: string;
+  hint: string;
+  Icon: typeof Pencil;
+}[] = [
+  {
+    id: "ask",
+    label: "Ask",
+    hint: "Answer & discuss, no changes",
+    Icon: Pencil,
+  },
+  {
+    id: "plan",
+    label: "Plan",
+    hint: "Draft a plan before editing",
+    Icon: ClipboardList,
+  },
+  {
+    id: "auto",
+    label: "Auto",
+    hint: "Plan, edit & run autonomously",
+    Icon: Sparkles,
+  },
+];
+
+function ModeMenu() {
+  const composerMode = useWorkspace((s) => s.composerMode);
+  const setComposerMode = useWorkspace((s) => s.setComposerMode);
+  const active =
+    COMPOSER_MODES.find((m) => m.id === composerMode) ?? COMPOSER_MODES[0];
+  const ActiveIcon = active.Icon;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label={`Change mode (current: ${active.label})`}
+          className="flex h-7 items-center gap-1.5 rounded-md border border-transparent px-2 text-xs font-medium text-foreground hover:bg-accent/60"
+        >
+          <ActiveIcon className="h-3.5 w-3.5 text-primary" />
+          {active.label}
+          <ChevronDown className="h-3 w-3 opacity-60" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="start" className="w-60">
+        <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">
+          Mode
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup
+          value={composerMode}
+          onValueChange={(v) => setComposerMode(v as ComposerMode)}
+        >
+          {COMPOSER_MODES.map((m) => {
+            const Icon = m.Icon;
+            return (
+              <DropdownMenuRadioItem
+                key={m.id}
+                value={m.id}
+                className="gap-2 py-1.5"
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />
+                <span className="flex flex-1 flex-col">
+                  <span className="text-xs font-medium">{m.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {m.hint}
+                  </span>
+                </span>
+              </DropdownMenuRadioItem>
+            );
+          })}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function PlusMenu() {
-  const askBeforeChanges = useWorkspace((s) => s.askBeforeChanges);
-  const toggleAskBeforeChanges = useWorkspace((s) => s.toggleAskBeforeChanges);
   const effort = useWorkspace((s) => s.effort);
   const setEffort = useWorkspace((s) => s.setEffort);
 
@@ -736,7 +952,7 @@ function PlusMenu() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-64">
-        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">
           Add to conversation
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -746,7 +962,7 @@ function PlusMenu() {
         >
           <Plus className="h-3.5 w-3.5" />
           Attach file
-          <span className="ml-auto text-[10px] text-muted-foreground">@</span>
+          <span className="ml-auto text-xs text-muted-foreground">@</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => toast.info("Slash command", { description: "Type / in the box." })}
@@ -754,7 +970,7 @@ function PlusMenu() {
         >
           <Terminal className="h-3.5 w-3.5" />
           Run command
-          <span className="ml-auto text-[10px] text-muted-foreground">/</span>
+          <span className="ml-auto text-xs text-muted-foreground">/</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => toast.info("Skill", { description: "Type $ in the box." })}
@@ -762,44 +978,11 @@ function PlusMenu() {
         >
           <Settings2 className="h-3.5 w-3.5" />
           Use skill
-          <span className="ml-auto text-[10px] text-muted-foreground">$</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {/* Change mode */}
-        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          Change mode
-        </DropdownMenuLabel>
-        <DropdownMenuItem
-          onSelect={() => {
-            if (askBeforeChanges) toggleAskBeforeChanges();
-          }}
-          className="gap-2 text-xs"
-        >
-          <div className="flex flex-1 flex-col">
-            <span className="font-medium">Auto-apply</span>
-            <span className="text-[10px] text-muted-foreground">
-              Apply edits without asking
-            </span>
-          </div>
-          {!askBeforeChanges && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => {
-            if (!askBeforeChanges) toggleAskBeforeChanges();
-          }}
-          className="gap-2 text-xs"
-        >
-          <div className="flex flex-1 flex-col">
-            <span className="font-medium">Ask before changes</span>
-            <span className="text-[10px] text-muted-foreground">
-              Confirm each edit before it&apos;s applied
-            </span>
-          </div>
-          {askBeforeChanges && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
+          <span className="ml-auto text-xs text-muted-foreground">$</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {/* Effort */}
-        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">
           Effort
           <span className="ml-1.5 font-normal normal-case tracking-normal text-foreground/70">
             {effortLabel}
@@ -820,7 +1003,7 @@ function PlusMenu() {
               <span className="flex flex-1 items-center gap-1.5 text-xs font-medium">
                 {e.id === "max" && <Sparkles className="h-3 w-3 text-primary" />}
                 {e.label}
-                <span className="ml-auto text-[10px] font-normal text-muted-foreground">
+                <span className="ml-auto text-xs font-normal text-muted-foreground">
                   {e.hint}
                 </span>
               </span>
@@ -832,21 +1015,165 @@ function PlusMenu() {
   );
 }
 
+/* Context-window indicator: a small donut ring showing token usage, with a
+   detailed hover popover that breaks down context categories, cache, quota
+   and rate-limit usage. */
+const CONTEXT_LIMIT = 200_000; // tokens — typical model context window
+
+/** One row in the category breakdown, with a mini bar. */
+function ContextRow({
+  label,
+  pct,
+  colorClass,
+}: {
+  label: string;
+  pct: number;
+  colorClass: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <span className="w-24 shrink-0 truncate text-xs text-muted-foreground">
+        {label}
+      </span>
+      <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn("h-full rounded-full bg-current", colorClass)}
+          style={{ width: `${Math.min(100, pct)}%` }}
+        />
+      </div>
+      <span className="w-8 shrink-0 text-right text-xs tabular-nums text-foreground/70">
+        {pct.toFixed(1)}%
+      </span>
+    </div>
+  );
+}
+
+function ContextWindowIndicator() {
+  const detail = useWorkspace((s) => s.detail)!;
+  const used = detail.tokensUsed;
+  const pct = Math.min(100, (used / CONTEXT_LIMIT) * 100);
+  const pctRounded = Math.round(pct);
+  const remaining = Math.max(0, CONTEXT_LIMIT - used);
+
+  // Donut geometry: r=6 in a 16x16 viewBox → circumference ≈ 37.70
+  const r = 6;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+
+  // Color shifts with usage: blue → amber → red
+  const color =
+    pct >= 90 ? "text-destructive" : pct >= 70 ? "text-amber-500" : "text-primary";
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          aria-label={`Context window ${pctRounded}% used`}
+          title={`Context: ${pctRounded}%`}
+          className="flex h-6 w-6 items-center justify-center rounded-md border border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+        >
+          <svg viewBox="0 0 16 16" className="h-4 w-4 -rotate-90" fill="none">
+            <circle cx="8" cy="8" r={r} strokeWidth="2" className="stroke-current opacity-30" />
+            <circle
+              cx="8"
+              cy="8"
+              r={r}
+              strokeWidth="2"
+              strokeLinecap="round"
+              className={cn(color, "transition-[stroke-dasharray] duration-500")}
+              style={{ strokeDasharray: `${dash} ${circ - dash}` }}
+            />
+          </svg>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="top" align="center" className="w-72 p-3 text-xs">
+        {/* Header: total usage */}
+        <div className="mb-2.5 flex items-baseline justify-between">
+          <span className="text-xs font-medium text-muted-foreground">
+            Context windows
+          </span>
+          <span className="tabular-nums text-foreground/80">
+            {formatTokens(used)}/200K{" "}
+            <span className={cn("font-semibold", color)}>({pct.toFixed(1)}%)</span>
+          </span>
+        </div>
+
+        {/* Category breakdown */}
+        <div className="space-y-0">
+          <ContextRow label="Messages" pct={87.7} colorClass="text-primary" />
+          <ContextRow label="MCP tools" pct={7.4} colorClass="text-sky-500" />
+          <ContextRow label="System tools" pct={3.5} colorClass="text-violet-500" />
+          <ContextRow label="Skills" pct={1.2} colorClass="text-emerald-500" />
+          <ContextRow label="System prompt" pct={0.2} colorClass="text-amber-500" />
+          <ContextRow label="Meta context" pct={0} colorClass="text-muted-foreground" />
+        </div>
+
+        <div className="my-2.5 h-px bg-border" />
+
+        {/* Cache + quota */}
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+          <div>
+            <div className="text-xs text-muted-foreground">Average cache hit rate</div>
+            <div className="text-xs font-medium text-foreground">80.1%</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Usage remaining</div>
+            <div className="text-xs font-medium text-emerald-500">150% Quota</div>
+          </div>
+        </div>
+
+        <div className="my-2.5 h-px bg-border" />
+
+        {/* Rate limit / window */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">More</span>
+            <span className="text-xs tabular-nums text-foreground/80">5 hours</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Window</span>
+            <span className="text-xs tabular-nums text-foreground/80">
+              15% · 01:29
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Tool calls</span>
+            <span className="text-xs tabular-nums text-foreground/80">
+              56% · Jun 26
+            </span>
+          </div>
+        </div>
+
+        <div className="my-2.5 h-px bg-border" />
+
+        {/* Footer: remaining tokens */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Tokens remaining</span>
+          <span className="text-xs font-medium tabular-nums text-foreground">
+            {formatTokens(remaining)}
+          </span>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function ModelMenu() {
   const model = useWorkspace((s) => s.model);
   const setModel = useWorkspace((s) => s.setModel);
+  const active = MODELS.find((m) => m.id === model) ?? MODELS[0];
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex h-7 items-center gap-1 rounded-md border border-transparent px-2 text-[11px] font-medium text-muted-foreground hover:bg-accent/60 hover:text-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          {model}
+        <button className="flex h-7 items-center gap-1.5 rounded-md border border-transparent px-2 text-xs font-medium text-foreground hover:bg-accent/60">
+          <Cpu className="h-3.5 w-3.5 text-primary" />
+          <span className="max-w-[8.5rem] truncate">{active.label}</span>
           <ChevronDown className="h-3 w-3 opacity-60" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="end" className="w-60">
-        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground">
           Model
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -861,8 +1188,11 @@ function ModelMenu() {
               className="gap-2 py-1.5"
             >
               <span className="flex flex-1 flex-col">
-                <span className="text-xs font-medium">{m.label}</span>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1.5 text-xs font-medium">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  {m.label}
+                </span>
+                <span className="pl-3 text-xs text-muted-foreground">
                   {m.hint}
                 </span>
               </span>
