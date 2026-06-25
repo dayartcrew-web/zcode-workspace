@@ -1,25 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { useEffect, useState } from "react";
 import { useWorkspace } from "@/lib/store";
-import { LeftSidebar } from "./left-sidebar";
-import { CentralContent } from "./central-content";
-import { RightSidebar } from "./right-sidebar";
-import { SettingsView } from "./settings-view";
-import type { TaskDetail, WorkspaceTask } from "@/lib/types";
+import type { WorkspaceTask } from "@/lib/types";
 
+/**
+ * Minimal workspace shell.
+ *
+ * The demo UI (sidebars, settings view, composer, menus, source-control panel)
+ * was removed in the teardown. This shell boots, fetches the task list from
+ * /api/tasks to keep the client/server wiring exercised, and renders an empty
+ * state. Build the real UI on top of this.
+ */
 export function ZcodeWorkspace() {
-  const tasks = useWorkspace((s) => s.tasks);
-  const activeTaskId = useWorkspace((s) => s.activeTaskId);
-  const view = useWorkspace((s) => s.view);
-  const setDetail = useWorkspace((s) => s.setDetail);
-  const setDetailLoading = useWorkspace((s) => s.setDetailLoading);
   const hydrate = useWorkspace((s) => s.hydrate);
   const [bootError, setBootError] = useState<string | null>(null);
   const [booted, setBooted] = useState(false);
 
-  // Initial load of the task list
+  // Initial load of the task list — keeps the API contract exercised.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -31,8 +29,7 @@ export function ZcodeWorkspace() {
         hydrate(data.tasks, data.tasks[0]?.id ?? "");
         setBooted(true);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Unknown error";
-        setBootError(msg);
+        setBootError(err instanceof Error ? err.message : "Unknown error");
         setBooted(true);
       }
     })();
@@ -40,32 +37,6 @@ export function ZcodeWorkspace() {
       cancelled = true;
     };
   }, [hydrate]);
-
-  // Load detail whenever the active task changes
-  const loadDetail = useCallback(
-    async (id: string) => {
-      if (!id) return;
-      setDetailLoading(true);
-      try {
-        const res = await fetch(`/api/tasks/${id}`, { cache: "no-store" });
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        const data = (await res.json()) as { detail: TaskDetail };
-        setDetail(data.detail);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Unknown error";
-        setBootError(msg);
-      } finally {
-        setDetailLoading(false);
-      }
-    },
-    [setDetail, setDetailLoading],
-  );
-
-  useEffect(() => {
-    if (activeTaskId) void loadDetail(activeTaskId);
-  }, [activeTaskId, loadDetail]);
 
   if (!booted) {
     return (
@@ -75,7 +46,7 @@ export function ZcodeWorkspace() {
     );
   }
 
-  if (bootError && tasks.length === 0) {
+  if (bootError) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
         <span>Failed to load workspace.</span>
@@ -85,39 +56,16 @@ export function ZcodeWorkspace() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background">
-      {view === "settings" ? (
-        <SettingsView />
-      ) : (
-        <PanelGroup direction="horizontal" autoSaveId="zcode-layout">
-          {/* Left sidebar — fixed narrow */}
-          <Panel
-            defaultSize={20}
-            minSize={16}
-            maxSize={28}
-            className="hidden sm:block"
-          >
-            <LeftSidebar />
-          </Panel>
-          <PanelResizeHandle className="hidden sm:block w-px bg-border data-[resize-handle-state=drag]:bg-primary/50 transition-colors" />
-
-          {/* Center */}
-          <Panel defaultSize={56} minSize={36}>
-            <CentralContent />
-          </Panel>
-          <PanelResizeHandle className="w-px bg-border data-[resize-handle-state=drag]:bg-primary/50 transition-colors" />
-
-          {/* Right sidebar */}
-          <Panel
-            defaultSize={24}
-            minSize={18}
-            maxSize={34}
-            className="hidden lg:block"
-          >
-            <RightSidebar />
-          </Panel>
-        </PanelGroup>
-      )}
+    <div className="flex h-screen w-screen items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-2 text-center">
+        <h1 className="text-2xl font-semibold text-foreground">ZCode</h1>
+        <p className="text-sm text-muted-foreground">
+          Empty workspace shell. The demo UI was removed.
+        </p>
+        <p className="text-xs text-muted-foreground/70">
+          Build the real interface on top of this shell.
+        </p>
+      </div>
     </div>
   );
 }
