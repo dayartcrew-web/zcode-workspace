@@ -7,7 +7,6 @@ import { LeftSidebar } from "./left-sidebar";
 import { CentralContent } from "./central-content";
 import { RightSidebar } from "./right-sidebar";
 import { SettingsView } from "./settings-view";
-import { buildTaskDetail } from "@/lib/seed-data";
 import type { TaskDetail, WorkspaceTask } from "@/lib/types";
 
 export function ZcodeWorkspace() {
@@ -48,28 +47,8 @@ export function ZcodeWorkspace() {
       if (!id) return;
       setDetailLoading(true);
       try {
-        // Live-simulated tasks (added via the websocket sidecar) are never in
-        // the seed data, so skip the network round-trip and build a local
-        // detail directly. Avoids a guaranteed 404 + console noise.
-        if (id.startsWith("task-sim-")) {
-          const task = useWorkspace.getState().tasks.find((t) => t.id === id);
-          if (task) {
-            setDetail(buildTaskDetail(task));
-            return;
-          }
-        }
         const res = await fetch(`/api/tasks/${id}`, { cache: "no-store" });
         if (!res.ok) {
-          // 404 for tasks not in seed data (e.g. live-simulated tasks added
-          // via the websocket sidecar). Fabricate a plausible detail locally
-          // instead of erroring, so those tasks remain openable.
-          if (res.status === 404) {
-            const task = useWorkspace.getState().tasks.find((t) => t.id === id);
-            if (task) {
-              setDetail(buildTaskDetail(task));
-              return;
-            }
-          }
           throw new Error(`HTTP ${res.status}`);
         }
         const data = (await res.json()) as { detail: TaskDetail };

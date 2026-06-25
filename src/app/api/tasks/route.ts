@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { seedTasks } from "@/lib/seed-data";
 import {
   TaskListResponseSchema,
   CreateTaskInputSchema,
@@ -12,15 +11,13 @@ export const dynamic = "force-static";
 /**
  * GET /api/tasks — list of tasks for the left sidebar.
  *
- * The response is validated through the `TaskListResponseSchema` contract so
- * the wire shape is guaranteed to match what the client expects (typed from the
- * same schema). Any drift between server data and client types surfaces here at
- * build/request time instead of at the UI.
+ * Returns an empty list — the mock seed data was removed in the teardown.
+ * The response is still validated through `TaskListResponseSchema` so the wire
+ * shape stays guaranteed. Wire this to a real data source (Prisma) to populate.
  */
 export async function GET() {
-  const parsed = TaskListResponseSchema.safeParse({ tasks: seedTasks });
+  const parsed = TaskListResponseSchema.safeParse({ tasks: [] });
   if (!parsed.success) {
-    // Should never happen for seed data, but the contract gate catches it.
     return NextResponse.json(
       { error: "Task list contract validation failed", issues: parsed.error.issues },
       { status: 500 },
