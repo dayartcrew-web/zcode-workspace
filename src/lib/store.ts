@@ -4,7 +4,6 @@ import { create } from "zustand";
 import type {
   ChecklistItem,
   FileChange,
-  SimStatus,
   TaskDetail,
   Upload,
   WorkspaceMessage,
@@ -14,7 +13,6 @@ import { createTaskProgressSlice, type TaskProgressSlice } from "@/lib/features/
 import { createChatStreamingSlice, type ChatStreamingSlice } from "@/lib/features/chat-streaming";
 import { createFileChangesSlice, type FileChangesSlice } from "@/lib/features/file-changes";
 import { createUploadsSlice, type UploadsSlice } from "@/lib/features/uploads";
-import { createSimulationSlice, type SimulationSlice } from "@/lib/features/simulation";
 import {
   createSettingsSlice,
   type AppView,
@@ -33,14 +31,13 @@ import { createSourceControlSlice, type SourceControlSlice } from "@/lib/feature
 
 /**
  * WorkspaceState is the intersection of all feature slices. Each feature owns
- * its own state + actions + mock data under src/lib/features/<feature>/.
+ * its own state + actions under src/lib/features/<feature>/.
  */
 export interface WorkspaceState
   extends TaskProgressSlice,
     ChatStreamingSlice,
     FileChangesSlice,
     UploadsSlice,
-    SimulationSlice,
     SettingsSlice,
     ComposerSlice,
     ConnectionsSlice,
@@ -52,7 +49,6 @@ export const useWorkspace = create<WorkspaceState>()((...args) => ({
   ...createChatStreamingSlice(...args),
   ...createFileChangesSlice(...args),
   ...createUploadsSlice(...args),
-  ...createSimulationSlice(...args),
   ...createSettingsSlice(...args),
   ...createComposerSlice(...args),
   ...createConnectionsSlice(...args),
@@ -68,6 +64,5 @@ export type {
   ChecklistItem,
   FileChange,
   Upload,
-  SimStatus,
 };
 export type { RemoteEnvironment, SettingsState, AppView, SettingsSection };

@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import {
   Settings,
   Star,
-  RefreshCw,
   UserRound,
   LayoutGrid,
   Menu,
@@ -17,7 +16,6 @@ import {
   Globe,
   Loader2,
   Check,
-  WifiOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/store";
@@ -37,7 +35,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { RemoteConnectDialog } from "./remote-connect-dialog";
-import { SimulationStatusBadge } from "./simulation-provider";
 
 export function LeftSidebar() {
   const tasks = useWorkspace((s) => s.tasks);
@@ -85,7 +82,6 @@ export function LeftSidebar() {
             </span>
           </div>
           <div className="flex items-center gap-0.5">
-            <SimulationStatusBadge />
             <HeaderIcon
               icon={<Menu className="h-3.5 w-3.5" />}
               label="Menu"
@@ -441,7 +437,6 @@ function SyncIndicator({
   active: boolean;
   updatedAt: string;
 }) {
-  const simStatus = useWorkspace((s) => s.simStatus);
   const [, tick] = useState(0);
 
   // Refresh the relative-time label periodically.
@@ -450,25 +445,7 @@ function SyncIndicator({
     return () => clearInterval(iv);
   }, []);
 
-  const reconnecting = simStatus === "connecting" || simStatus === "disconnected";
-  const offline = simStatus === "offline";
-
-  if (reconnecting) {
-    return (
-      <RefreshCw className="h-3 w-3 shrink-0 animate-spin text-amber-400" />
-    );
-  }
-  if (offline) {
-    return (
-      <WifiOff
-        className={cn(
-          "h-3 w-3 shrink-0 text-destructive/70",
-          active ? "" : "opacity-70",
-        )}
-      />
-    );
-  }
-  // Connected: relative timestamp of the last update.
+  // Relative timestamp of the last update.
   return (
     <span
       className={cn(
