@@ -1,5 +1,12 @@
 # AGENTS.md
 
+> **⚠️ Teardown notice:** The simulation sidecar, mock data, and demo UI were
+> removed in the teardown (see [`TEARDOWN.md`](./TEARDOWN.md)). References to
+> `dev:sim`, `mini-services/`, the simulation sidecar, and demo components
+> below are historical. The verification gates (lint/typecheck/test/build) and
+> the preserved `src/lib/{contracts,errors,config,domain}` boundary remain
+> accurate and should be followed.
+
 Guidance for any coding agent (or human contributor) working in this repository.
 This is a Next.js 16 + React 19 + Tailwind 4 + shadcn/ui admin-dashboard
 template styled as an AI development workspace. Read this before making changes.

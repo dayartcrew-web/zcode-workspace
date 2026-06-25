@@ -1,5 +1,12 @@
 # Architecture
 
+> **⚠️ Teardown notice:** This document describes the *pre-teardown* app
+> (simulation sidecar, mock-data slices, demo UI components). Those were removed
+> in the `teardown-to-minimal-shell` workflow — see [`TEARDOWN.md`](../TEARDOWN.md)
+> for what was removed/preserved. The app is now a minimal empty shell; this doc
+> is retained as historical reference and should be rewritten when real features
+> are built.
+
 This is the canonical architecture reference for **zcode-workspace** — a
 Next.js 16 + React 19 + Tailwind 4 + shadcn/ui admin-dashboard template styled
 as an AI development workspace ("ZCode"). It documents the stack, how requests

@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+> **⚠️ Teardown notice:** Simulation sidecar, mock data, and demo UI removed in
+> the teardown (see [`TEARDOWN.md`](./TEARDOWN.md)). Verification gates below
+> remain accurate; sim/mock/mini-services references are historical.
+
 Quick operating guide for Claude working in this repo. Same project, same rules
 as `AGENTS.md` — this is the concise version. Next.js 16 + React 19 + Tailwind 4
 + shadcn/ui admin-dashboard template. Run everything via `bun`, import app code

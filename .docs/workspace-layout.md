@@ -1,5 +1,10 @@
 # Workspace Layout
 
+> **⚠️ Teardown notice:** This directory reference includes paths removed in
+> the teardown (`mini-services/`, `examples/`, `scripts/`, simulation slice,
+> mock files, demo components). See [`TEARDOWN.md`](../TEARDOWN.md) for the
+> current accurate state. Retained as historical reference.
+
 Directory-by-directory reference for **zcode-workspace**.
 
 ```

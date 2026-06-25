@@ -48,7 +48,6 @@ should be confirmed in the installed package's `package.json` / `LICENSE`.
 | react-day-picker | Apache-2.0 | Date picker |
 | input-otp | MIT | OTP input |
 | sharp | Apache-2.0 | Image optimization |
-| socket.io-client | MIT | WebSocket client (sim sidecar) |
 | uuid | MIT | ID generation |
 | @dnd-kit/* | MIT | Drag and drop |
 | @reactuses/core | MIT | React hooks |
