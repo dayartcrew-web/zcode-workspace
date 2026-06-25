@@ -7,7 +7,6 @@ import { LeftSidebar } from "./left-sidebar";
 import { CentralContent } from "./central-content";
 import { RightSidebar } from "./right-sidebar";
 import { SettingsView } from "./settings-view";
-import { SimulationProvider } from "./simulation-provider";
 import { buildTaskDetail } from "@/lib/seed-data";
 import type { TaskDetail, WorkspaceTask } from "@/lib/types";
 
@@ -107,41 +106,39 @@ export function ZcodeWorkspace() {
   }
 
   return (
-    <SimulationProvider>
-      <div className="flex h-screen w-screen overflow-hidden bg-background">
-        {view === "settings" ? (
-          <SettingsView />
-        ) : (
-          <PanelGroup direction="horizontal" autoSaveId="zcode-layout">
-            {/* Left sidebar — fixed narrow */}
-            <Panel
-              defaultSize={20}
-              minSize={16}
-              maxSize={28}
-              className="hidden sm:block"
-            >
-              <LeftSidebar />
-            </Panel>
-            <PanelResizeHandle className="hidden sm:block w-px bg-border data-[resize-handle-state=drag]:bg-primary/50 transition-colors" />
+    <div className="flex h-screen w-screen overflow-hidden bg-background">
+      {view === "settings" ? (
+        <SettingsView />
+      ) : (
+        <PanelGroup direction="horizontal" autoSaveId="zcode-layout">
+          {/* Left sidebar — fixed narrow */}
+          <Panel
+            defaultSize={20}
+            minSize={16}
+            maxSize={28}
+            className="hidden sm:block"
+          >
+            <LeftSidebar />
+          </Panel>
+          <PanelResizeHandle className="hidden sm:block w-px bg-border data-[resize-handle-state=drag]:bg-primary/50 transition-colors" />
 
-            {/* Center */}
-            <Panel defaultSize={56} minSize={36}>
-              <CentralContent />
-            </Panel>
-            <PanelResizeHandle className="w-px bg-border data-[resize-handle-state=drag]:bg-primary/50 transition-colors" />
+          {/* Center */}
+          <Panel defaultSize={56} minSize={36}>
+            <CentralContent />
+          </Panel>
+          <PanelResizeHandle className="w-px bg-border data-[resize-handle-state=drag]:bg-primary/50 transition-colors" />
 
-            {/* Right sidebar */}
-            <Panel
-              defaultSize={24}
-              minSize={18}
-              maxSize={34}
-              className="hidden lg:block"
-            >
-              <RightSidebar />
-            </Panel>
-          </PanelGroup>
-        )}
-      </div>
-    </SimulationProvider>
+          {/* Right sidebar */}
+          <Panel
+            defaultSize={24}
+            minSize={18}
+            maxSize={34}
+            className="hidden lg:block"
+          >
+            <RightSidebar />
+          </Panel>
+        </PanelGroup>
+      )}
+    </div>
   );
 }

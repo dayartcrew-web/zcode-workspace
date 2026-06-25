@@ -34,7 +34,6 @@ import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/lib/store";
 import type { ComposerMode } from "@/lib/features/composer/slice";
 import { FilePill, DiffBadge } from "./file-pill";
-import { useSimulationApi } from "./simulation-provider";
 import type { WorkspaceMessage } from "@/lib/types";
 import { toast } from "sonner";
 import {
@@ -83,27 +82,6 @@ function useCountUp(target: number, duration = 0.6) {
     return () => cancelAnimationFrame(raf);
   }, [target, duration]);
   return value;
-}
-
-/** Resolve true once streaming finishes, or false after `timeoutMs`. */
-function waitForStreamingEnd(timeoutMs: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    // Give the server a moment to emit sim:chat-start before checking.
-    const startedAt = Date.now();
-    const check = () => {
-      const state = useWorkspace.getState();
-      if (!state.streamingMessageId) {
-        resolve(true);
-        return;
-      }
-      if (Date.now() - startedAt >= timeoutMs) {
-        resolve(false);
-        return;
-      }
-      setTimeout(check, 250);
-    };
-    setTimeout(check, 300);
-  });
 }
 
 /** Assistant avatar badge — spinning brain while thinking, bot icon when done. */
@@ -367,15 +345,14 @@ function MoreMenu() {
 
 function MessageList() {
   const detail = useWorkspace((s) => s.detail)!;
-  const streamingMessageId = useWorkspace((s) => s.streamingMessageId);
-  const streamingContent = useWorkspace((s) => s.streamingContent);
+  const isSending = useWorkspace((s) => s.isSending);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [detail.messages.length, detail.id, streamingContent]);
+  }, [detail.messages.length, detail.id, isSending]);
 
   return (
     <div
@@ -386,33 +363,17 @@ function MessageList() {
         {detail.messages.map((m) => (
           <MessageItem key={m.id} message={m} />
         ))}
-        <AnimatePresence>
-          {streamingMessageId && (
-            <motion.div
-              key={`streaming-${streamingMessageId}`}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex gap-3"
-            >
-              <AssistantAvatar thinking={!streamingContent.trim()} />
-              <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-lg border border-border/60 bg-card/40 px-3.5 py-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  ZCode
-                </div>
-                {streamingContent.trim() ? (
-                  <p className="text-sm leading-relaxed text-foreground/90">
-                    {streamingContent}
-                    <span className="ml-0.5 inline-block h-3.5 w-0.5 translate-y-0.5 animate-pulse bg-primary/70" />
-                  </p>
-                ) : (
-                  <ThinkingIndicator />
-                )}
+        {isSending && (
+          <div className="flex gap-3">
+            <AssistantAvatar thinking />
+            <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-lg border border-border/60 bg-card/40 px-3.5 py-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                ZCode
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <ThinkingIndicator />
+            </div>
+          </div>
+        )}
         <FileChangesBlock />
         <GoalCompleteBanner />
       </div>
@@ -662,7 +623,6 @@ function Composer() {
   const setSending = useWorkspace((s) => s.setSending);
   const appendMessage = useWorkspace((s) => s.appendMessage);
   const language = useWorkspace((s) => s.language);
-  const sim = useSimulationApi();
 
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -692,27 +652,6 @@ function Composer() {
 
     setComposerValue("");
     setSending(true);
-
-    // If the live simulation sidecar is connected, stream the reply via ws.
-    if (sim && sim.status === "connected") {
-      try {
-        sim.requestChat(detail.id, prompt);
-        // The streaming bubble + tokens are driven by sim:chat-* events;
-        // we keep the spinner until the stream ends. Bound the wait so a
-        // sidecar that dies mid-stream can't hang the composer forever.
-        const streamingDone = await waitForStreamingEnd(15000);
-        if (!streamingDone) {
-          // Timed out — clear any half-streamed state so the UI recovers.
-          useWorkspace.getState().cancelStreaming();
-          toast.error(language === "zh" ? "回复超时" : "Reply timed out", {
-            description: language === "zh" ? "模拟服务无响应" : "The simulation sidecar didn't respond.",
-          });
-        }
-      } finally {
-        setSending(false);
-      }
-      return;
-    }
 
     try {
       const res = await fetch("/api/chat", {
